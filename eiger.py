@@ -2,14 +2,16 @@ import h5py
 import hdf5plugin
 import os
 import numpy as np
+import pandas as pd
 
 
-class eigerdata:
+class bluesky_scanning_data:
     def __init__(self):
         self.header = None
         self.data = None
+        self.scandata = None
         
-    class header_object:
+    class eiger_header_object:
         def __init__(self):
             self.h5MasterFilePath       = None
             self.BitDepthImage          = None
@@ -27,13 +29,32 @@ class eigerdata:
             self.ManualROI              = None
             self.ROI                    = None
             self.TotalFrame             = None
+
+    class bluesky_data_object:
+        def __init__(self):
+            self.profile = 'bluesky'
+            self.motor_direction_z = None
+            self.motor_direction_x = None
+            self.data_ff = None
+            self.master_fn = None
+            self.master_fp = None
+            self.scan_data_fn = None
+            self.scan_data_fp = None
+            self.readback_x = None
+            self.readback_z = None
+            self.set_x = None
+            self.set_z = None
+            self.expo_pos_x = None
+            self.expo_pos_y = None
         
+    def load_data(self,bluesky_scandata_filepath):
+        # load scan data information
+        self.scandata = self.__load_bluesky_data(bluesky_scandata_filepath)
         
-    def load_data(self,master_fp):
-        self.header = self.header_object()
-        
+        # load header
+        master_fp = self.scandata.master_fp
+        self.header = self.eiger_header_object()
         header_temp = read_header(master_fp)
-        
         self.header.h5MasterFilePath       = header_temp['h5MasterFilePath']     
         self.header.BitDepthImage          = header_temp['BitDepthImage']        
         self.header.SaturationIntensity    = header_temp['SaturationIntensity']  
@@ -51,12 +72,55 @@ class eigerdata:
         self.header.ROI                    = header_temp['ROI']                  
         self.header.TotalFrame             = header_temp['TotalFrame']
         
+        # load data        
         data_temp = np.zeros([header_temp['TotalFrame'],header_temp['YPixelsInDetector'],header_temp['XPixelsInDetector']]) # create tank for data
         for sn in range(data_temp.shape[0]):
             print('Loading frame: %d/%d'%(sn+1,header_temp['TotalFrame']),end= '\r')
             data_temp[sn] = read_frame(master_fp,sn+1) # sn start from 0 but sheet start 1
         print('\t\t\t\t\tDone.')
         self.data = data_temp
+    
+    def __load_bluesky_data(self,scan_file_path,beamline = 'TPS 25A'):
+        bluesky_data_fp = scan_file_path
+        # for bluesky scan file at TPS 25A and home-made scan file at TPS 23A
+        if not os.path.isfile(bluesky_data_fp):
+            print('Bluesky scan file does not exist.')
+            return
+        
+        data_ff, scan_data_fn = os.path.split(bluesky_data_fp)
+        
+        table_buffer = pd.read_csv(bluesky_data_fp,engine='python',sep=',| ')
+    
+        file_name_pattern = table_buffer['eig1m_file_file_write_name_pattern'][0]
+        master_fn = file_name_pattern + '_master.h5'
+        scanfile_fp = bluesky_data_fp
+        readback_x = table_buffer['_cisamf_x'].to_numpy() # in um
+        readback_z = table_buffer['_cisamf_z'].to_numpy() # in um
+        set_x = table_buffer['_cisamf_x_user_setpoint'].to_numpy() # in um
+        set_z = table_buffer['_cisamf_z_user_setpoint'].to_numpy() # in um
+        
+        if beamline == 'TPS 25A':
+            motor_direction_z = 1
+            motor_direction_x = -1
+
+        bluesky_data_object = self.bluesky_data_object()
+        bluesky_data_object.motor_direction_z = motor_direction_z
+        bluesky_data_object.motor_direction_x = motor_direction_x
+        bluesky_data_object.data_ff = data_ff
+        bluesky_data_object.master_fn = master_fn
+        bluesky_data_object.master_fp = os.path.join(data_ff,master_fn)
+        bluesky_data_object.scan_data_fn = scan_data_fn
+        bluesky_data_object.scan_data_fp = scanfile_fp
+        bluesky_data_object.readback_x = readback_x * 1e-6 # in meter
+        bluesky_data_object.readback_z = readback_z * 1e-6 # in meter
+        bluesky_data_object.set_x = set_x * 1e-6 # in meter
+        bluesky_data_object.set_z = set_z * 1e-6 # in meter
+        
+        # The definition of the axis of object is noticed in the ptt file.
+        bluesky_data_object.expo_pos_x = bluesky_data_object.readback_x * - bluesky_data_object.motor_direction_x# exposure position
+        bluesky_data_object.expo_pos_y = bluesky_data_object.readback_z * - bluesky_data_object.motor_direction_z
+        
+        return bluesky_data_object
 
 
 def read_header(master_fp):
