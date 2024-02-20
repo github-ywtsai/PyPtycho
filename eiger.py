@@ -4,7 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 
-class eiger_header_object:
+class __eiger_header_object:
         def __init__(self):
             self.h5MasterFilePath       = None
             self.BitDepthImage          = None
@@ -21,7 +21,7 @@ class eiger_header_object:
             self.PixelMask              = None
             self.TotalFrame             = None
             
-class bluesky_data_object:
+class __bluesky_data_object:
         def __init__(self):
             self.profile = 'bluesky'
             self.beamline = None
@@ -39,7 +39,7 @@ class bluesky_data_object:
             self.expo_pos_x = None
             self.expo_pos_y = None
 
-class bluesky_exp_object:
+class __bluesky_exp_object:
     def __init__(self):
         self.header = None
         self.data = None
@@ -48,7 +48,7 @@ class bluesky_exp_object:
         
 def load_bluesky_exp_data(bluesky_scandata_filepath):
     # load scan data information
-    object = bluesky_aexp_object()
+    object = __bluesky_exp_object()
     
     # read bluesky scan data
     object.scandata = read_bluesky_data(bluesky_scandata_filepath)
@@ -90,7 +90,7 @@ def read_bluesky_data(bluesky_data_fp,beamline = 'TPS 25A'):
         motor_direction_z = 1
         motor_direction_x = -1
 
-    object = bluesky_data_object()
+    object = __bluesky_data_object()
     object.beamline = beamline
     object.motor_direction_z = motor_direction_z
     object.motor_direction_x = motor_direction_x
@@ -114,7 +114,7 @@ def read_bluesky_data(bluesky_data_fp,beamline = 'TPS 25A'):
 
 ## basic eigr read function
 def read_header(master_fp):
-    header_object = eiger_header_object() # create object
+    header_object = __eiger_header_object() # create object
     
     if not os.path.isfile(master_fp):
         print('File does not exist.')
