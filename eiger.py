@@ -3,6 +3,62 @@ import hdf5plugin
 import os
 import numpy as np
 
+
+class eigerdata:
+    def __init__(self):
+        self.header = None
+        self.data = None
+        
+    class header_object:
+        def __init__(self):
+            self.h5MasterFilePath       = None
+            self.BitDepthImage          = None
+            self.SaturationIntensity    = None
+            self.XPixelsInDetector      = None
+            self.YPixelsInDetector      = None
+            self.CountTime              = None
+            self.DetectorDistance       = None
+            self.XPixelSize             = None
+            self.YPixelSize             = None
+            self.Wavelength             = None
+            self.BeamCenterX            = None
+            self.BeamCenterY            = None
+            self.PixelROI               = None
+            self.ManualROI              = None
+            self.ROI                    = None
+            self.TotalFrame             = None
+        
+        
+    def load_data(self,master_fp):
+        self.header = self.header_object()
+        
+        header_temp = read_header(master_fp)
+        
+        self.header.h5MasterFilePath       = header_temp['h5MasterFilePath']     
+        self.header.BitDepthImage          = header_temp['BitDepthImage']        
+        self.header.SaturationIntensity    = header_temp['SaturationIntensity']  
+        self.header.XPixelsInDetector      = header_temp['XPixelsInDetector']    
+        self.header.YPixelsInDetector      = header_temp['YPixelsInDetector']    
+        self.header.CountTime              = header_temp['CountTime']            
+        self.header.DetectorDistance       = header_temp['DetectorDistance']     
+        self.header.XPixelSize             = header_temp['XPixelSize']           
+        self.header.YPixelSize             = header_temp['YPixelSize']           
+        self.header.Wavelength             = header_temp['Wavelength']           
+        self.header.BeamCenterX            = header_temp['BeamCenterX']          
+        self.header.BeamCenterY            = header_temp['BeamCenterY']          
+        self.header.PixelROI               = header_temp['PixelROI']             
+        self.header.ManualROI              = header_temp['ManualROI']            
+        self.header.ROI                    = header_temp['ROI']                  
+        self.header.TotalFrame             = header_temp['TotalFrame']
+        
+        data_temp = np.zeros([header_temp['TotalFrame'],header_temp['YPixelsInDetector'],header_temp['XPixelsInDetector']]) # create tank for data
+        for sn in range(data_temp.shape[0]):
+            print('Loading frame: %d/%d'%(sn+1,header_temp['TotalFrame']),end= '\r')
+            data_temp[sn] = read_frame(master_fp,sn+1) # sn start from 0 but sheet start 1
+        print('\t\t\t\t\tDone.')
+        self.data = data_temp
+
+
 def read_header(master_fp):
     if not os.path.isfile(master_fp):
         print('File does not exist.')
