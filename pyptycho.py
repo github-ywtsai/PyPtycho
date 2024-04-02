@@ -8,10 +8,12 @@ class data_pretreatment_config:
         self.clip_size              = None # should be a odd number
         self.saturation_threshold   = None
         
-#class pretreated_data_object:
-#    def __init__(self):
-#        self.data                   = None
-#        self.mask                   = None 
+class pretreated_data_object:
+    def __init__(self):
+        self.data                   = None
+        self.mask                   = None
+        self.exp_pos_x              = None
+        self.exp_pos_z              = None
        
 def pretreat_data(raw_data_object,data_pretreatment_config):
     # rearrange xcen
@@ -50,11 +52,30 @@ def pretreat_data(raw_data_object,data_pretreatment_config):
     # tools.matrix_clip function will return a new matrix for the cliped matrix
     # pretreated_data = pretreated_data_object()
     data_temp = tools.matrix_clip(raw_data_object.data,data_pretreatment_config.clip_ycen,data_pretreatment_config.clip_xcen,data_pretreatment_config.clip_size)
-    saturation_mask = data_temp >= data_pretreatment_config.saturation_threshold
-    pixel_mask = tools.matrix_clip(raw_data_object.header.PixelMask,data_pretreatment_config.clip_ycen,data_pretreatment_config.clip_xcen,data_pretreatment_config.clip_size)
+    saturation_mask = data_temp >= data_pretreatment_config.saturation_threshold # individual mask
+    pixel_mask = tools.matrix_clip(raw_data_object.header.PixelMask,data_pretreatment_config.clip_ycen,data_pretreatment_config.clip_xcen,data_pretreatment_config.clip_size) # mask configuration of detector
     mask_temp = np.logical_or(saturation_mask,pixel_mask)
     
-    pretreated_data = np.ma.masked_array(data_temp, mask = mask_temp)
+    # rearrange exposure position
+    # Definition:
+    # 1. Use the central-of-mass of the the scanning points as the center.
+    # 2. Transform all scanning positions from positions to shifts.
+    # 3. Redirect all shifts to "exposure positions" on the sample, where the coordinate on the sample is a XY Cartesian Coordinate System.
+    
+    readback_x = raw_data_object.scandata.readback_x
+    readback_z = raw_data_object.scandata.readback_z
+    readback_x_cen = np.mean(readback_x)
+    readback_z_cen = np.mean(readback_z)
+    x_shift = readback_x - readback_x_cen
+    z_shift = readback_z - readback_z_cen
+    exp_pos_x = x_shift* -1 * raw_data_object.scandata.motor_direction_x
+    exp_pos_z = z_shift* -1 * raw_data_object.scandata.motor_direction_z
+    
+    pretreated_data = pretreated_data_object()
+    pretreated_data.data = np.ma.masked_array(data_temp, mask = mask_temp)
+    pretreated_data.mask = mask_temp
+    pretreated_data.exp_pos_x = exp_pos_x
+    pretreated_data.exp_pos_z = exp_pos_z
     
     return pretreated_data
     
