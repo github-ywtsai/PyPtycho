@@ -103,11 +103,7 @@ def read_bluesky_data(bluesky_data_fp,beamline = 'TPS 25A'):
     object.readback_z = readback_z * 1e-6 # in meter
     object.set_x = set_x * 1e-6 # in meter
     object.set_z = set_z * 1e-6 # in meter
-    
-    # The definition of the axis of object is noticed in the ptt file.
-    object.expo_pos_x = object.readback_x * - object.motor_direction_x# exposure position
-    object.expo_pos_y = object.readback_z * - object.motor_direction_z
-    
+
     return object
 
 
