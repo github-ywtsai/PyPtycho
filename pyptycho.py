@@ -6,7 +6,12 @@ class data_pretreatment_config:
         self.clip_xcen              = None # start from 0
         self.clip_ycen              = None # start from 0
         self.clip_size              = None # should be a odd number
-        self.saturation_threshold   = None
+        self.saturation_threshold   = None # for individual mask
+        self.binning                = None # binning factor
+
+class probe_gen_config:
+    def __init__(self):
+        self.probe_gen_mode         = None # prboe gen. mode: 'gaussian', 'focus', 'sim', 'adapt'
         
 class pretreated_data_object:
     def __init__(self):
@@ -14,6 +19,20 @@ class pretreated_data_object:
         self.mask                   = None
         self.exp_pos_x              = None
         self.exp_pos_z              = None
+
+class probe_object:
+    def __init__(self):
+        self.data                   = None
+        self.x_axis                 = None
+        self.z_axis                 = None
+        self.pixel_res              = None
+        
+class object_object:
+    def __init__(self):
+        self.data                   = None
+        self.x_axis                 = None
+        self.z_axis                 = None
+        self.pixel_res              = None
        
 def pretreat_data(raw_data_object,data_pretreatment_config):
     # rearrange xcen
@@ -48,6 +67,10 @@ def pretreat_data(raw_data_object,data_pretreatment_config):
     else:
         data_pretreatment_config.saturation_threshold = data_pretreatment_config.saturation_threshold
         print('saturation_threshold is set to %d manually.'%(data_pretreatment_config.saturation_threshold))
+    
+    ## binning section
+    if data_pretreatment_config.binning != 1:
+        print('Binning function is not ready yet.') 
         
     # tools.matrix_clip function will return a new matrix for the cliped matrix
     # pretreated_data = pretreated_data_object()
@@ -60,8 +83,7 @@ def pretreat_data(raw_data_object,data_pretreatment_config):
     # Definition:
     # 1. Use the central-of-mass of the the scanning points as the center.
     # 2. Transform all scanning positions from positions to shifts.
-    # 3. Redirect all shifts to "exposure positions" on the sample, where the coordinate on the sample is a XY Cartesian Coordinate System.
-    
+    # 3. Redirect all shifts to "exposure positions" on the sample, where the coordinate on the sample is a XY Cartesian Coordinate System.    
     readback_x = raw_data_object.scandata.readback_x
     readback_z = raw_data_object.scandata.readback_z
     readback_x_cen = np.mean(readback_x)
@@ -78,6 +100,7 @@ def pretreat_data(raw_data_object,data_pretreatment_config):
     pretreated_data.exp_pos_z = exp_pos_z
     
     return pretreated_data
+
     
     
     
