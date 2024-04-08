@@ -70,4 +70,21 @@ def matrix_clip(matrix_in,row_cen,col_cen,clip_size):
 def cal_real_space_pixel_res(wavelength = None, detector_distance = None, clip_size = None, pixel_size = None):
     real_space_pixel_res = wavelength * detector_distance / clip_size / pixel_size
     return real_space_pixel_res
+
+def show_length_with_unit(length,precision = 3):
+    order = np.log10(np.abs(length)).astype(int)-1
+    if order > 0:
+        output = '{{:.{}f}}'.format(precision).format(length) + ' [m]'
+    if order>=-3 and order < 0:
+        output =  '{{:.{}f}}'.format(precision).format(length*1E3) + ' [mm]'
+    if order>=-6 and order < -3:
+        output =  '{{:.{}f}}'.format(precision).format(length*1E6) + ' [um]'
+    if order>=-9 and order < -6:
+        output =  '{{:.{}f}}'.format(precision).format(length*1E9) + ' [nm]'
+    if order>=-12 and order < -9:
+        output =  '{{:.{}f}}'.format(precision).format(length*1E12) + ' [pm]'
+    if order>=-15 and order < -12:
+        output =  '{{:.{}f}}'.format(precision).format(length*1E15) + ' [fm]'
+    
+    return output
         
