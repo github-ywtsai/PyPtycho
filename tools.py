@@ -67,4 +67,7 @@ def matrix_clip(matrix_in,row_cen,col_cen,clip_size):
         
     return matrix_output
 
+def cal_real_space_pixel_res(wavelength = None, detector_distance = None, clip_size = None, pixel_size = None):
+    real_space_pixel_res = wavelength * detector_distance / clip_size / pixel_size
+    return real_space_pixel_res
         
