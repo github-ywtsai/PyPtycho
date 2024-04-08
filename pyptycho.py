@@ -19,6 +19,9 @@ class pretreated_data_object:
         self.mask                   = None
         self.exp_pos_x              = None
         self.exp_pos_z              = None
+        self.pixel_size             = None
+        self.wavelength             = None
+        self.detector_distance      = None
 
 class probe_object:
     def __init__(self):
@@ -68,9 +71,16 @@ def pretreat_data(raw_data_object,data_pretreatment_config):
         data_pretreatment_config.saturation_threshold = data_pretreatment_config.saturation_threshold
         print('saturation_threshold is set to %d manually.'%(data_pretreatment_config.saturation_threshold))
     
-    ## binning section
+        
+    wavelength = raw_data_object.header.Wavelength
+    pixel_size = raw_data_object.header.XPixelSize
+    detector_distance = raw_data_object.header.DetectorDistance
+    
+        ## binning section
     if data_pretreatment_config.binning != 1:
-        print('Binning function is not ready yet.') 
+        # when benning on, change parameters here
+        print('Binning function is not ready yet.')
+        
         
     # tools.matrix_clip function will return a new matrix for the cliped matrix
     # pretreated_data = pretreated_data_object()
@@ -98,6 +108,11 @@ def pretreat_data(raw_data_object,data_pretreatment_config):
     pretreated_data.mask = mask_temp
     pretreated_data.exp_pos_x = exp_pos_x
     pretreated_data.exp_pos_z = exp_pos_z
+
+    pretreated_data.pixel_size              = pixel_size
+    pretreated_data.wavelength              = wavelength
+    pretreated_data.detector_distance       = detector_distance
+    pretreated_data.clip_size               = clip_size
     
     return pretreated_data
 
