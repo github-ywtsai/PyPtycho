@@ -71,10 +71,15 @@ def pretreat_data(raw_data_object,data_pretreatment_config):
         data_pretreatment_config.saturation_threshold = data_pretreatment_config.saturation_threshold
         print('saturation_threshold is set to %d manually.'%(data_pretreatment_config.saturation_threshold))
     
-        
+    
     wavelength = raw_data_object.header.Wavelength
     pixel_size = raw_data_object.header.XPixelSize
     detector_distance = raw_data_object.header.DetectorDistance
+    clip_size = data_pretreatment_config.clip_size
+    clip_xcen = data_pretreatment_config.clip_xcen
+    clip_ycen = data_pretreatment_config.clip_ycen
+    raw_data = np.copy(raw_data_object.data)
+    raw_pixel_mask = np.copy(raw_data_object.header.PixelMask)
     
         ## binning section
     if data_pretreatment_config.binning != 1:
@@ -84,9 +89,9 @@ def pretreat_data(raw_data_object,data_pretreatment_config):
         
     # tools.matrix_clip function will return a new matrix for the cliped matrix
     # pretreated_data = pretreated_data_object()
-    data_temp = tools.matrix_clip(raw_data_object.data,data_pretreatment_config.clip_ycen,data_pretreatment_config.clip_xcen,data_pretreatment_config.clip_size)
+    data_temp = tools.matrix_clip(raw_data,clip_ycen,clip_xcen,clip_size)
     saturation_mask = data_temp >= data_pretreatment_config.saturation_threshold # individual mask
-    pixel_mask = tools.matrix_clip(raw_data_object.header.PixelMask,data_pretreatment_config.clip_ycen,data_pretreatment_config.clip_xcen,data_pretreatment_config.clip_size) # mask configuration of detector
+    pixel_mask = tools.matrix_clip(raw_pixel_mask,clip_ycen,clip_xcen,clip_size) # mask configuration of detector
     mask_temp = np.logical_or(saturation_mask,pixel_mask)
     
     # rearrange exposure position
