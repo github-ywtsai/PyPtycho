@@ -1,6 +1,7 @@
 import numpy as np
 import tools
 
+# for diffraction pattern
 class data_pretreatment_config:
     def __init__(self):
         self.clip_xcen              = None # start from 0
@@ -8,10 +9,6 @@ class data_pretreatment_config:
         self.clip_size              = None # should be a odd number
         self.saturation_threshold   = None # for individual mask
         self.binning                = None # binning factor
-
-class probe_gen_config:
-    def __init__(self):
-        self.probe_gen_mode         = None # prboe gen. mode: 'gaussian', 'focus', 'sim', 'adapt'
         
 class pretreated_data_object:
     def __init__(self):
@@ -23,19 +20,88 @@ class pretreated_data_object:
         self.wavelength             = None
         self.detector_distance      = None
 
+# for probe
+class probe_gen_config:
+    def __init__(self):
+        self.mixture_state          = None # number of probe
+
 class probe_object:
     def __init__(self):
         self.data                   = None
         self.x_axis                 = None
         self.z_axis                 = None
         self.pixel_res              = None
-        
-class object_object:
+        self.cdi_window             = None
+
+# for object     
+class obj_gen_config:
+    def __init__(self):
+        self.extend_ratio           = 0.1 # area extend, default 10% 
+        self.transmission_range     = [0.95, 1] # random range of the transmission
+
+class obj_object:
     def __init__(self):
         self.data                   = None
         self.x_axis                 = None
         self.z_axis                 = None
         self.pixel_res              = None
+        
+def gen_probe(pretreated_data_object,probe_gen_config):
+    probe = probe_object()
+    data = np.zeros([pretreated_data_object.clip_size,pretreated_data_object.clip_size,probe_gen_config.mixture_state]) *  0j
+    pixel_res = tools.cal_real_space_pixel_res(wavelength = pretreated_data_object.wavelength , detector_distance = pretreated_data_object.detector_distance , clip_size = pretreated_data_object.clip_size , pixel_size = pretreated_data_object.pixel_size)
+    cdi_window = pixel_res * pretreated_data_object.clip_size
+    
+    cen_idx = np.int32((pretreated_data_object.clip_size - 1)/2)
+    x_axis = (np.arange(pretreated_data_object.clip_size)-cen_idx) * pixel_res 
+    z_axis = np.flip(x_axis)
+    
+    probe.data = data
+    probe.pixel_res = pixel_res
+    probe.x_axis = x_axis
+    probe.z_axis = z_axis
+    probe.cdi_window = cdi_window
+    
+    print('Probe shape: {}'.format(probe.data.shape))
+    print('CDI window: {}'.format(tools.show_length_with_unit(cdi_window)))
+    print('Probe pixel resolution: {}'.format(tools.show_length_with_unit(pixel_res)))
+    return probe
+    
+def gen_obj(pretreated_data_object,obj_gen_config):
+    obj = obj_object()
+    pixel_res = tools.cal_real_space_pixel_res(wavelength = pretreated_data_object.wavelength , detector_distance = pretreated_data_object.detector_distance , clip_size = pretreated_data_object.clip_size , pixel_size = pretreated_data_object.pixel_size)
+    cdi_window = pixel_res * pretreated_data_object.clip_size
+    
+    obj_x_range = ( pretreated_data_object.exp_pos_x.max()-pretreated_data_object.exp_pos_x.min() + cdi_window ) * (1+obj_gen_config.extend_ratio)
+    obj_z_range = ( pretreated_data_object.exp_pos_z.max()-pretreated_data_object.exp_pos_z.min() + cdi_window ) * (1+obj_gen_config.extend_ratio)
+
+    
+    obj_col_size = np.round(obj_x_range/pixel_res).astype(int)
+    obj_row_size = np.round(obj_z_range/pixel_res).astype(int)
+
+    if tools.iseven(obj_row_size):
+        obj_row_size = obj_row_size + 1
+    if tools.iseven(obj_col_size):
+        obj_col_size = obj_col_size + 1
+    
+    obj_row_cen_idx = ((obj_row_size - 1)/2).astype(int)
+    obj_col_cen_idx = ((obj_col_size - 1)/2).astype(int)
+    
+    x_axis = (np.arange(obj_col_size) - obj_col_cen_idx)*pixel_res
+    z_axis = np.flip((np.arange(obj_row_size) - obj_row_cen_idx)*pixel_res)
+    
+    data = (np.random.uniform(low = np.min(obj_gen_config.transmission_range),high = np.max(obj_gen_config.transmission_range),size = [obj_row_size,obj_col_size]))*0j
+    
+    obj.data = data
+    obj.x_axis = x_axis
+    obj.z_axis = z_axis
+    obj.pixel_res = pixel_res
+    
+    print('Object shape: {}'.format(obj.data.shape))
+    print('Object FOV: {}'.format(tools.show_length_with_unit(obj_col_size*pixel_res)),'X {}'.format(tools.show_length_with_unit(obj_row_size*pixel_res)))
+    print('Object pixel resolution: {}'.format(tools.show_length_with_unit(pixel_res)))
+    
+    return obj
        
 def pretreat_data(raw_data_object,data_pretreatment_config):
     # rearrange xcen
