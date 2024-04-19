@@ -16,6 +16,8 @@ class pretreated_data_object:
         self.mask                   = None
         self.exp_pos_x              = None
         self.exp_pos_z              = None
+        self.exp_pos_x_shift        = None
+        self.exp_pos_z_shift        = None
         self.pixel_size             = None
         self.wavelength             = None
         self.detector_distance      = None
@@ -179,6 +181,8 @@ def pretreat_data(raw_data_object,data_pretreatment_config):
     pretreated_data.mask = mask_temp
     pretreated_data.exp_pos_x = exp_pos_x
     pretreated_data.exp_pos_z = exp_pos_z
+    pretreated_data.exp_pos_x_shift = np.zeros(exp_pos_x.shape)
+    pretreated_data.exp_pos_z_shift = np.zeros(exp_pos_z.shape)
 
     pretreated_data.pixel_size              = pixel_size
     pretreated_data.wavelength              = wavelength
