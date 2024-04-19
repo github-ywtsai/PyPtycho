@@ -87,4 +87,15 @@ def show_length_with_unit(length,precision = 3):
         output =  '{{:.{}f}}'.format(precision).format(length*1E15) + ' [fm]'
     
     return output
-        
+
+def position_to_index(pos_x = None, pos_z=None ,x_axis = None,z_axis = None):
+    if type(pos_x) is float:
+        pos_x = np.array([pos_x])
+    if type(pos_z) is float:
+        pos_z = np.array([pos_z])
+             
+    row_idx = np.argmin(abs(z_axis-pos_z[:,np.newaxis]),axis=1)
+    col_idx = np.argmin(abs(x_axis-pos_x[:,np.newaxis]),axis=1)
+    
+    return row_idx, col_idx
+    
