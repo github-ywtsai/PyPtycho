@@ -50,7 +50,7 @@ class obj_object:
         
 def gen_probe(pretreated_data_object,probe_gen_config):
     probe = probe_object()
-    data = np.zeros([pretreated_data_object.clip_size,pretreated_data_object.clip_size,probe_gen_config.mixture_state]) *  0j
+    data = np.zeros([probe_gen_config.mixture_state,pretreated_data_object.clip_size,pretreated_data_object.clip_size]) *  0j
     pixel_res = tools.cal_real_space_pixel_res(wavelength = pretreated_data_object.wavelength , detector_distance = pretreated_data_object.detector_distance , clip_size = pretreated_data_object.clip_size , pixel_size = pretreated_data_object.pixel_size)
     cdi_window = pixel_res * pretreated_data_object.clip_size
     
