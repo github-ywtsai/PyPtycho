@@ -127,9 +127,9 @@ def read_header(master_fp):
     
     # find max frame number
     dset = list(fid['entry/data/'].items())
-    for dsn in range(len(dset)):
-        if dset[dsn][1] == None:
-            TotalFrame = dset[dsn-1][1].attrs['image_nr_high']
+    for dsn in reversed(range(len(dset))):
+        if dset[dsn][1] != None:
+            TotalFrame = dset[dsn][1].attrs['image_nr_high']
             break
     
     header_object.h5MasterFilePath     = master_fp
