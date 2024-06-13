@@ -48,24 +48,24 @@ class __bluesky_exp_object:
         
 def load_bluesky_exp_data(bluesky_scandata_filepath):
     # load scan data information
-    object = __bluesky_exp_object()
+    bluesky_object = __bluesky_exp_object()
     
     # read bluesky scan data
-    object.scandata = read_bluesky_data(bluesky_scandata_filepath)
+    bluesky_object.scandata = read_bluesky_data(bluesky_scandata_filepath)
     
     # load header
-    master_fp = object.scandata.master_fp
-    object.header = read_header(master_fp)
+    master_fp = bluesky_object.scandata.master_fp
+    bluesky_object.header = read_header(master_fp)
 
     # load data        
-    data_temp = np.zeros([object.header.TotalFrame,object.header.YPixelsInDetector,object.header.XPixelsInDetector]) # create tank for data
+    data_temp = np.zeros([bluesky_object.header.TotalFrame,bluesky_object.header.YPixelsInDetector,bluesky_object.header.XPixelsInDetector]) # create tank for data
     for sn in range(data_temp.shape[0]):
-        print('Loading frame: %d/%d'%(sn+1,object.header.TotalFrame),end= '\r')
+        print('Loading frame: %d/%d'%(sn+1,bluesky_object.header.TotalFrame),end= '\r')
         data_temp[sn] = read_frame(master_fp,sn+1) # sn start from 0 but sheet start 1
     print('\t\t\t\t\tDone.')
-    object.data = data_temp
+    bluesky_object.data = data_temp
     
-    return object
+    return bluesky_object
     
 
 def read_bluesky_data(bluesky_data_fp,beamline = 'TPS 25A'):
@@ -78,7 +78,14 @@ def read_bluesky_data(bluesky_data_fp,beamline = 'TPS 25A'):
     
     table_buffer = pd.read_csv(bluesky_data_fp,engine='python',sep=',| ')
 
-    file_name_pattern = table_buffer['eig1m_file_file_write_name_pattern'][0]
+    ## check eiger type
+    if len([col for col in table_buffer.columns if 'eig1m' in col]) != 0: # Eiger 1M case
+        file_name_pattern = table_buffer['eig1m_file_file_write_name_pattern'][0]
+    elif len([col for col in table_buffer.columns if 'eig16m' in col]) != 0: # Eiger 16M case
+        file_name_pattern = table_buffer['eig16m_file_file_write_name_pattern'][0]
+    else:
+        print('No Eiger data found.')
+
     master_fn = file_name_pattern + '_master.h5'
     scanfile_fp = bluesky_data_fp
     readback_x = table_buffer['_cisamf_x'].to_numpy() # in um
@@ -124,6 +131,7 @@ def read_header(master_fp):
         if dset[dsn][1] == None:
             TotalFrame = dset[dsn-1][1].attrs['image_nr_high']
             break
+    
     header_object.h5MasterFilePath     = master_fp
     header_object.BitDepthImage        = fid['/entry/instrument/detector/bit_depth_image'][()]
     header_object.SaturationIntensity  = fid['/entry/instrument/detector/detectorSpecific/countrate_correction_count_cutoff'][()]
