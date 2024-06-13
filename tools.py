@@ -1,5 +1,11 @@
 import numpy as np
 
+def isnone(input):
+    if input is None:
+        return True
+    else:
+        return False
+
 def isint(input):
     if np.round(input) == input:
         return True
