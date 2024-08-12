@@ -104,4 +104,12 @@ def position_to_index(pos_x = None, pos_z=None ,x_axis = None,z_axis = None):
     col_idx = np.argmin(abs(x_axis-pos_x[:,np.newaxis]),axis=1)
     
     return row_idx, col_idx
+
+def energy_eV_to_wavelength_m(energy = None):
+    h=6.62607015*10**-34
+    e=1.60217651019*10**-19
+    c=299792458.0
+    wavelength=(h*c)/(energy*e)
+    
+    return wavelength
     
