@@ -15,10 +15,6 @@ def energy_eV_to_wavelength_m(energy = None):
 
 class atomic_database:
     def __init__(self,arg_atomic_name):
-        self.initialize(arg_atomic_name)
-        
-        
-    def initialize(self,arg_atomic_name):
         # the periodic table is downloaded form https://pubchem.ncbi.nlm.nih.gov/ptable/atomic-mass/
         ## load from periodic table
         periodic_table_fp = os.path.join('.','database','periodic_table.csv')
@@ -50,7 +46,7 @@ class atomic_database:
                 self.value = None
         self.f0_table = f0_table()
         f0_table_fp = os.path.join('.','database','f0_table.csv')
-        f0_table_df = pd.read_csv(f0_table_fp)
+        f0_table_df = pd.read_csv(f0_table_fp,header = None)
         sin_th_over_lambda = f0_table_df.iloc[:,0].values
         value = f0_table_df.iloc[:,self.atomic_number].values
         self.f0_table.sin_th_over_lambda = sin_th_over_lambda
