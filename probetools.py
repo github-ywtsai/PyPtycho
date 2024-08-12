@@ -1,50 +1,55 @@
 import numpy as np
 from numpy import pi
+import tools
+import material_property
 
 
-class exit_wave_object():
+class wavefield_object():
     def __init__(self):
         self.data                   = None
         self.x_axis                 = None
         self.z_axis                 = None
         self.pixel_res              = None
+        self.wavelength             = None
+        
+class zoneplate_object(wavefield_object):
+    def __init__(self):
+        self.focal_length           = None
 
-def gen_zoneplate(dr=50e-9,N=300,wavelength=0.8265e-10,material='Au',thickness=600e-9):
+def gen_zoneplate(dr=None,N=None,energy=None,material=None,thickness=None):
+    # energy in eV
     # dr: the min. pitch
     # N: the period for the zone plate design
     # using formula from Attwood Soft X-rays and Extereme Ultraviolet Radiation
-    # D_cs: diameter of the central stop [m]
-    # T_cs: transmittance of the central stop
-    # off_focal: the sample position referring to the focal plane [m]
     # material: zoneplate made of
     # thickness: thickness of the zoneplate [m]
     
     # 96 um zoneplate in TPS 25A
     # dr = 30e-9
     # N = 800
+    # thickness = 600E-9
     
     # 60 um zoneplate in TPS 25A
     # dr = 50e-9
-    # N = 300 
+    # N = 300
+    # thickness = 600E-9
     
+    # 80 um zoneplate in TPS 25A by ANT
+    # dr = 70e-9 
+    # N = 286
+    # thickness = 1500E-9
+    
+    # 120 um zoneplate in TPS 25A by XRnanotech
+    # dr = 70e-9
+    # N = 429
+    # thickness = 1500E-9
+    
+    wavelength = tools.energy_eV_to_wavelength_m(energy)
+    property = material_property.atomic_database('Au')
+    n_refractivity = property.calculate_refractive_index(energy = energy,theta = 0)
     # diameter and focal length of the zone plate
     D = 4*N*dr
     f = (4*N*dr**2)/wavelength
-    
-    ## temporary 
-    # calculate refractivity
-    # n(wavelength) = 1 - delta(wavelength) + i beta(wavelength)
-    f1 = 74.9382 # [e/atom] from NIST
-    f2 = 6.0726 # [e/atom] % from NIST
-    re = 2.8179403e-15 # classical electron rauius [m]
-    Na = 6.02214129e23 # Avogadro constant [1/mol]
-    Ma = 196.966569 # molar mass [g/mol]
-    rho = 19.32 # density [g/cm^3]
-    rho = rho / (1e-2)**3 # convert unit from [g cm-3] to [g m-3]
-    na = rho*Na/Ma # number density
-    delta = na*re*wavelength**2/2/pi*f1
-    beta =  na*re*wavelength**2/2/pi*f2
-    n_refractivity = 1 - delta + 1j * beta
     ## temporary 
 
     # E(z) = E0 * exp(i * n k z)
@@ -71,13 +76,15 @@ def gen_zoneplate(dr=50e-9,N=300,wavelength=0.8265e-10,material='Au',thickness=6
     for n_sn in np.flip(np.arange(0,N+1)):
         if np.mod(n_sn,2) == 0:
             zp[distance_map<rn[n_sn]] = zp_modulation_factor
-#        else:
-#            zp[distance_map<rn[n_sn]] = 0
+        else:
+            zp[distance_map<rn[n_sn]] = 0
             
-    zp_object = exit_wave_object()
+    zp_object = zoneplate_object()
     zp_object.data = zp
     zp_object.x_axis = x_axis
     zp_object.z_axis = x_axis
     zp_object.pixel_res = pix_res
+    zp_object.focal_length = f
+    zp_object.wavelength = wavelength
     
     return zp_object
