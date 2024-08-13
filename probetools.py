@@ -2,6 +2,7 @@ import numpy as np
 from numpy import pi
 import tools
 import material_property
+import matplotlib.pyplot as plt
 
 
 class wavefield_object():
@@ -30,6 +31,7 @@ def gen_zoneplate(dr=None,N=None,energy=None,material=None,thickness=None):
     # N = 800
     # thickness = 600E-9
     
+    
     # 60 um zoneplate in TPS 25A
     # dr = 50e-9
     # N = 300
@@ -39,15 +41,19 @@ def gen_zoneplate(dr=None,N=None,energy=None,material=None,thickness=None):
     # dr = 70e-9 
     # N = 286
     # thickness = 1500E-9
+    # Ex:
+    # zp = probetools.gen_zoneplate(dr=70e-9,N=286,energy=8979,material='Au',thickness=1500E-9)
     
     # 120 um zoneplate in TPS 25A by XRnanotech
     # dr = 70e-9
     # N = 429
     # thickness = 1500E-9
     
+    
     wavelength = tools.energy_eV_to_wavelength_m(energy)
     property = material_property.atomic_database('Au')
     n_refractivity = property.calculate_refractive_index(energy = energy,theta = 0)
+    
     # diameter and focal length of the zone plate
     D = 4*N*dr
     f = (4*N*dr**2)/wavelength
@@ -59,8 +65,10 @@ def gen_zoneplate(dr=None,N=None,energy=None,material=None,thickness=None):
     
 
     # create zp
-    n = np.arange(N+1)
+    
+    n = np.arange(N+1) # n = 0,1,2,3,....,N
     rn = np.sqrt(n*wavelength*f+(n*wavelength)**2/4)
+    
     pix_res = dr/2
     range = D*2
     pix_num = np.int32(np.round(range/pix_res))
@@ -74,11 +82,19 @@ def gen_zoneplate(dr=None,N=None,energy=None,material=None,thickness=None):
     x_matrix,y_matrix = np.meshgrid(x_axis,y_axis)
     distance_map = np.sqrt(x_matrix**2 + y_matrix**2)
     
-    for n_sn in np.flip(np.arange(0,N+1)):
-        if np.mod(n_sn,2) == 0:
-            zp[distance_map<rn[n_sn]] = zp_modulation_factor
-        else:
-            zp[distance_map<rn[n_sn]] = 1
+    for n_sn in n:
+        if np.mod(n_sn,2)!=0:
+            mask = (distance_map <= rn[n_sn]) & (distance_map > rn[n_sn-1])
+            zp[mask] = zp_modulation_factor
+
+        
+    
+    # for n_sn in np.flip(np.arange(0,N+1)):
+    #     if np.mod(n_sn,2) == 0:
+    #         zp[distance_map<rn[n_sn]] = zp_modulation_factor
+    #     else:
+    #         zp[distance_map<rn[n_sn]] = 1
+    
             
     zp_object = zoneplate_object()
     zp_object.data = zp
