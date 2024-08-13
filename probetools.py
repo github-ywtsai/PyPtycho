@@ -15,6 +15,7 @@ class wavefield_object():
 class zoneplate_object(wavefield_object):
     def __init__(self):
         self.focal_length           = None
+        
 
 def gen_zoneplate(dr=None,N=None,energy=None,material=None,thickness=None):
     # energy in eV
@@ -66,7 +67,7 @@ def gen_zoneplate(dr=None,N=None,energy=None,material=None,thickness=None):
     if np.mod(pix_num,2)==0:
         pix_num = pix_num + 1
     cen_idx = (pix_num-1)/2
-    zp = np.zeros([pix_num,pix_num],dtype = np.complex128)
+    zp = np.ones([pix_num,pix_num],dtype = np.complex128)
     
     x_axis = (np.arange(pix_num)-cen_idx)*pix_res
     y_axis = x_axis*-1 # the direction of y is inverse of the row axis
@@ -77,7 +78,7 @@ def gen_zoneplate(dr=None,N=None,energy=None,material=None,thickness=None):
         if np.mod(n_sn,2) == 0:
             zp[distance_map<rn[n_sn]] = zp_modulation_factor
         else:
-            zp[distance_map<rn[n_sn]] = 0
+            zp[distance_map<rn[n_sn]] = 1
             
     zp_object = zoneplate_object()
     zp_object.data = zp
@@ -88,3 +89,66 @@ def gen_zoneplate(dr=None,N=None,energy=None,material=None,thickness=None):
     zp_object.wavelength = wavelength
     
     return zp_object
+
+
+def wavefield_propagating(origin_wavefield_object = None, z = None):
+    # the xi_axis and eta_axis are the x_axis and y_axis of the input wavefield_object
+    # wavelength in meter
+    # z and propagating direction:
+    # in formula, +z means propagating to "downstream" and -z to
+    # "upstream". So, when input, +z means "downstream" and to increase the distance from the
+    # source coming from the undulator. -z means "upstream" and to decrease
+    # probe should be a ndarray
+    
+    # check the dimension of the input probe ndarray
+    # probe must be a 3-d matrix (multi-probe)
+    # when a 2-d probe input, rearange it.
+    wavefield = origin_wavefield_object.data
+    wavelength = origin_wavefield_object.wavelength
+    pixel_res = origin_wavefield_object.pixel_res
+    xi_axis = origin_wavefield_object.x_axis
+    eta_axis = origin_wavefield_object.z_axis
+    
+    if wavefield.ndim == 2:
+        wavefield = wavefield.reshape(1,wavefield.shape[0],wavefield.shape[1])
+    
+    k = 2*pi/wavelength
+    
+    xi_axis_res = pixel_res
+    eta_axis_res = pixel_res
+    
+    xi,eta = np.meshgrid(xi_axis,eta_axis) #[m]
+    U_measured_eta_size,U_measured_xi_size = wavefield[0].shape
+    xp_res = np.abs(wavelength*z/U_measured_xi_size/xi_axis_res)
+    yp_res = np.abs(wavelength*z/U_measured_eta_size/eta_axis_res)
+    U_propagated_yp_size,U_propagated_xp_size = wavefield[0].shape
+    xp_axis = (np.arange(U_propagated_xp_size)-U_propagated_xp_size/2)*xp_res
+    yp_axis = (np.arange(U_propagated_yp_size)-U_propagated_yp_size/2)*yp_res
+    xp,yp = np.meshgrid(xp_axis,yp_axis)
+    
+    if z<0:
+        U_measured = np.rot90(wavefield,axes=(1,2),k=2)
+    else:
+        U_measured = wavefield
+    
+    
+    # calculate propagating
+    temp = U_measured*np.exp(1j*k/(2*z)*(xi**2 +eta**2))
+    fft_temp = tools.array_fft(temp)*xi_axis_res*eta_axis_res
+    U_propagated = np.exp(1j*k*z)/(1j*wavelength*z)*np.exp(1j*k/(2*z)*(xp**2+yp**2))*fft_temp
+    
+    propagated_wavefield = U_propagated
+    propagated_x_axis = xp_axis
+    propagated_y_axis = yp_axis
+    
+    if propagated_wavefield.shape[0] == 1:
+        propagated_wavefield = propagated_wavefield[0]
+        
+    propagated_wavefield_object = wavefield_object()
+    propagated_wavefield_object.data                   = propagated_wavefield
+    propagated_wavefield_object.x_axis                 = propagated_x_axis
+    propagated_wavefield_object.z_axis                 = propagated_y_axis
+    propagated_wavefield_object.pixel_res              = xp_res
+    propagated_wavefield_object.wavelength             = wavelength
+    
+    return propagated_wavefield_object
