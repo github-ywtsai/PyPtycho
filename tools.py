@@ -1,5 +1,14 @@
 import numpy as np
 
+
+def array_fft(array_in):
+    array_out = np.fft.fftshift(np.fft.fft2(np.fft.ifftshift(array_in)))
+    return array_out
+
+def array_ifft(array_in):
+    array_out = np.fft.fftshift(np.fft.ifft2(np.fft.ifftshift(array_in)))
+    return array_out
+
 def isnone(input):
     if input is None:
         return True
