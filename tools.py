@@ -1,5 +1,5 @@
 import numpy as np
-
+import cv2
 
 def array_fft(array_in):
     array_out = np.fft.fftshift(np.fft.fft2(np.fft.ifftshift(array_in)))
@@ -120,5 +120,52 @@ def energy_eV_to_wavelength_m(energy = None):
     c=299792458.0
     wavelength=(h*c)/(energy*e)
     
-    return wavelength
+    # equal to
+    # h = 4.13566727E-15
+    # c = 299792458.0
+    # wavelength = (h*c)/energy
     
+    return wavelength
+
+def wavelength_m_to_energy_eV(wavelength = None):
+    h=6.62607015*10**-34
+    e=1.60217651019*10**-19
+    c=299792458.0
+    energy=(h*c)/(wavelength*e)
+    
+    # equal to
+    # h = 4.13566727E-15
+    # c = 299792458.0
+    # energy = (h*c)/wavelength
+    
+    return energy
+
+def frame_resize(ori_frame=None,magnification=None):
+    # cv2.resize(ori_frame,(new_col_size,new_row_size),interpolation=cv2.INTER_LINEAR)
+    if ori_frame.ndim == 2:
+        ori_row_size,ori_col_size = ori_frame.shape
+    elif ori_frame.ndim == 3:
+        print('img_resize only can apply on a 2D image.')
+        return
+    
+    resize_row_size = np.int32(np.round(ori_row_size*magnification))
+    resize_col_size = np.int32(np.round(ori_col_size*magnification))
+    
+    if np.mod(resize_row_size,2) == 0:
+        resize_row_size = resize_row_size-1
+    if np.mod(resize_col_size,2) == 0:
+        resize_col_size = resize_col_size-1    
+        
+    if ori_frame.dtype == 'bool': # for roi
+        mask = (~ori_frame).astype(float)
+        mask = cv2.resize(mask,(resize_col_size,resize_row_size),interpolation=cv2.INTER_LINEAR)
+        resize_frame = ~(mask>0)
+    elif ori_frame.dtype == 'complex128':  # for complex image
+        amp   = cv2.resize(np.abs(ori_frame)  ,(resize_col_size,resize_row_size),interpolation=cv2.INTER_LINEAR)
+        phase = cv2.resize(np.angle(ori_frame),(resize_col_size,resize_row_size),interpolation=cv2.INTER_LINEAR)
+        resize_frame = amp*np.exp(1j*phase)
+    else:
+        resize_frame = cv2.resize(ori_img,(resize_col_size,resize_row_size),interpolation=cv2.INTER_LINEAR)        
+    
+    return resize_frame
+
