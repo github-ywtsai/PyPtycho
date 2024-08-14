@@ -20,6 +20,7 @@ class __eiger_header_object:
             self.BeamCenterY            = None
             self.PixelMask              = None
             self.TotalFrame             = None
+            self.Energy                 = None
             
 class __bluesky_data_object:
         def __init__(self):
@@ -146,6 +147,10 @@ def read_header(master_fp):
     header_object.BeamCenterY          = fid['/entry/instrument/detector/beam_center_y'][()]
     header_object.PixelMask            = fid['/entry/instrument/detector/detectorSpecific/pixel_mask'][()].astype(bool) # convert the mask to logical array
     header_object.TotalFrame           = TotalFrame
+    h=6.62607015*10**-34
+    e=1.60217651019*10**-19
+    c=299792458.0
+    header_object.Energy               = (h*c)/(header_object.Wavelength*e)
 
     
     fid.close()
