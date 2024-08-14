@@ -7,14 +7,17 @@ import matplotlib.pyplot as plt
 
 class wavefield_object():
     def __init__(self):
+        self.attribute = 'wavefield'
         self.data                   = None
         self.x_axis                 = None
         self.z_axis                 = None
         self.pixel_res              = None
         self.wavelength             = None
+        self.energy                 = None
         
 class zoneplate_object(wavefield_object):
     def __init__(self):
+        self.attribute = 'zoneplate'
         self.focal_length           = None
         
 
@@ -49,7 +52,7 @@ def gen_zoneplate(dr=None,N=None,energy=None,material=None,thickness=None):
     # N = 429
     # thickness = 1500E-9
     
-    
+    print('Generating wavefield of the zone plate.')
     wavelength = tools.energy_eV_to_wavelength_m(energy)
     property = material_property.atomic_database('Au')
     n_refractivity = property.calculate_refractive_index(energy = energy,theta = 0)
@@ -94,7 +97,6 @@ def gen_zoneplate(dr=None,N=None,energy=None,material=None,thickness=None):
     #         zp[distance_map<rn[n_sn]] = zp_modulation_factor
     #     else:
     #         zp[distance_map<rn[n_sn]] = 1
-    
             
     zp_object = zoneplate_object()
     zp_object.data = zp
@@ -103,11 +105,12 @@ def gen_zoneplate(dr=None,N=None,energy=None,material=None,thickness=None):
     zp_object.pixel_res = pix_res
     zp_object.focal_length = f
     zp_object.wavelength = wavelength
+    zp_object.energy = energy
     
     return zp_object
 
 
-def wavefield_propagating(origin_wavefield_object = None, z = None):
+def wavefield_propagating(origin_wavefield_object = None, z = None, window = None):
     # the xi_axis and eta_axis are the x_axis and y_axis of the input wavefield_object
     # wavelength in meter
     # z and propagating direction:
@@ -119,13 +122,15 @@ def wavefield_propagating(origin_wavefield_object = None, z = None):
     # check the dimension of the input probe ndarray
     # probe must be a 3-d matrix (multi-probe)
     # when a 2-d probe input, rearange it.
+    print('Calculating wavefield propagating.')
     wavefield = origin_wavefield_object.data
     wavelength = origin_wavefield_object.wavelength
+    energy = origin_wavefield_object.energy
     pixel_res = origin_wavefield_object.pixel_res
     xi_axis = origin_wavefield_object.x_axis
     eta_axis = origin_wavefield_object.z_axis
     
-    if wavefield.ndim == 2:
+    if wavefield.ndim == 2: # a 2D case, repackage to a 1 frame 3D case
         wavefield = wavefield.reshape(1,wavefield.shape[0],wavefield.shape[1])
     
     k = 2*pi/wavelength
@@ -138,8 +143,8 @@ def wavefield_propagating(origin_wavefield_object = None, z = None):
     xp_res = np.abs(wavelength*z/U_measured_xi_size/xi_axis_res)
     yp_res = np.abs(wavelength*z/U_measured_eta_size/eta_axis_res)
     U_propagated_yp_size,U_propagated_xp_size = wavefield[0].shape
-    xp_axis = (np.arange(U_propagated_xp_size)-U_propagated_xp_size/2)*xp_res
-    yp_axis = (np.arange(U_propagated_yp_size)-U_propagated_yp_size/2)*yp_res
+    xp_axis = (np.arange(U_propagated_xp_size)-(U_propagated_xp_size-1)/2)*xp_res
+    yp_axis = (np.arange(U_propagated_yp_size)-(U_propagated_yp_size-1)/2)*yp_res
     xp,yp = np.meshgrid(xp_axis,yp_axis)
     
     if z<0:
@@ -157,7 +162,25 @@ def wavefield_propagating(origin_wavefield_object = None, z = None):
     propagated_x_axis = xp_axis
     propagated_y_axis = yp_axis
     
-    if propagated_wavefield.shape[0] == 1:
+    if window is not None:
+        accept_num_pixel = np.int32(np.round(window/xp_res))
+        if np.mod(accept_num_pixel,2)==0:
+            accept_num_pixel += 1
+        __, row_size, col_size = propagated_wavefield.shape
+        row_cen = np.int32(np.round((row_size - 1)/2))
+        col_cen = np.int32(np.round((col_size - 1)/2))
+        extend_range = np.int32((accept_num_pixel-1)/2)
+        row_start = row_cen - extend_range
+        row_end = row_start + accept_num_pixel
+        col_start = col_cen - extend_range
+        col_end = col_start + accept_num_pixel
+        print(extend_range,row_start,row_end,col_start,col_end)        
+        propagated_wavefield = propagated_wavefield[:,row_start:row_end,col_start:col_end]
+        propagated_x_axis = propagated_x_axis[col_start:col_end]
+        propagated_y_axis = propagated_y_axis[row_start:row_end]
+        
+    
+    if propagated_wavefield.shape[0] == 1: # a 2D case
         propagated_wavefield = propagated_wavefield[0]
         
     propagated_wavefield_object = wavefield_object()
@@ -166,5 +189,10 @@ def wavefield_propagating(origin_wavefield_object = None, z = None):
     propagated_wavefield_object.z_axis                 = propagated_y_axis
     propagated_wavefield_object.pixel_res              = xp_res
     propagated_wavefield_object.wavelength             = wavelength
+    propagated_wavefield_object.energy                 = energy
     
     return propagated_wavefield_object
+    
+    
+    
+        
