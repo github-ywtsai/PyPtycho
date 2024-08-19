@@ -140,7 +140,7 @@ def wavelength_m_to_energy_eV(wavelength = None):
     
     return energy
 
-def frame_resize(ori_frame=None,magnification=None):
+def frame_resampling(ori_frame=None,resampling_factor=None):
     # cv2.resize(ori_frame,(new_col_size,new_row_size),interpolation=cv2.INTER_LINEAR)
     if ori_frame.ndim == 2:
         ori_row_size,ori_col_size = ori_frame.shape
@@ -148,8 +148,8 @@ def frame_resize(ori_frame=None,magnification=None):
         print('img_resize only can apply on a 2D image.')
         return
     
-    resize_row_size = np.int32(np.round(ori_row_size*magnification))
-    resize_col_size = np.int32(np.round(ori_col_size*magnification))
+    resize_row_size = np.int32(np.round(ori_row_size*resampling_factor))
+    resize_col_size = np.int32(np.round(ori_col_size*resampling_factor))
     
     if np.mod(resize_row_size,2) == 0:
         resize_row_size = resize_row_size-1
@@ -169,3 +169,25 @@ def frame_resize(ori_frame=None,magnification=None):
     
     return resize_frame
 
+def frame_central_clip(ori_frame = None, clip_row_size = None, clip_col_size = None):
+    ori_frame_num, ori_frame_row_size, ori_frame_col_size = ori_frame.shape
+    if iseven(ori_frame_row_size)  or iseven(ori_frame_row_size):
+        print('Error: Input frames for clipping must be odds in row and col.')
+        return
+    if iseven(clip_row_size) or iseven(clip_col_size):
+        print('Error: Clip size must be in odd.')
+        
+    ori_frame_row_cen = np.int32((ori_frame_row_size-1)/2)
+    ori_frame_col_cen = np.int32((ori_frame_col_size-1)/2)
+    
+    extend_row_pixel = np.int32((clip_row_size-1)/2)
+    extend_col_pixel = np.int32((clip_col_size-1)/2)
+    
+    clip_frame_row_start = ori_frame_row_cen - extend_row_pixel
+    clip_frame_row_end = ori_frame_row_cen + extend_row_pixel
+    clip_frame_col_start = ori_frame_col_cen - extend_col_pixel
+    clip_frame_col_end = ori_frame_col_cen + extend_col_pixel
+    
+    output_frame = ori_frame[:,clip_frame_row_start:clip_frame_row_end+1,clip_frame_col_start:clip_frame_col_end+1]
+    
+    return output_frame
