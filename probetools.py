@@ -5,7 +5,7 @@ import material_property
 import matplotlib.pyplot as plt
 
 
-class wavefield_object():
+class wavefield_object:
     def __init__(self):
         self.attribute = 'wavefield'
         self.data                   = None
@@ -17,6 +17,7 @@ class wavefield_object():
         
 class zoneplate_object(wavefield_object):
     def __init__(self):
+        super().__init__() # adapt the father structure
         self.attribute = 'zoneplate'
         self.focal_length           = None
         
@@ -99,7 +100,7 @@ def gen_zoneplate(dr=None,N=None,energy=None,material=None,thickness=None):
     #         zp[distance_map<rn[n_sn]] = 1
             
     zp_object = zoneplate_object()
-    zp_object.data = zp
+    zp_object.data = zp.reshape(1,zp.shape[0],zp.shape[1])
     zp_object.x_axis = x_axis
     zp_object.z_axis = x_axis
     zp_object.pixel_res = pix_res
@@ -131,6 +132,8 @@ def wavefield_propagating(origin_wavefield_object = None, z = None, window = Non
     eta_axis = origin_wavefield_object.z_axis
     
     if wavefield.ndim == 2: # a 2D case, repackage to a 1 frame 3D case
+        print('Error: wavefield_propagating')
+        print('Wavefield must be a 3D array (multi-frame).')
         wavefield = wavefield.reshape(1,wavefield.shape[0],wavefield.shape[1])
     
     k = 2*pi/wavelength
@@ -174,14 +177,14 @@ def wavefield_propagating(origin_wavefield_object = None, z = None, window = Non
         row_end = row_start + accept_num_pixel
         col_start = col_cen - extend_range
         col_end = col_start + accept_num_pixel
-        print(extend_range,row_start,row_end,col_start,col_end)        
+      
         propagated_wavefield = propagated_wavefield[:,row_start:row_end,col_start:col_end]
         propagated_x_axis = propagated_x_axis[col_start:col_end]
         propagated_y_axis = propagated_y_axis[row_start:row_end]
         
     
-    if propagated_wavefield.shape[0] == 1: # a 2D case
-        propagated_wavefield = propagated_wavefield[0]
+    #if propagated_wavefield.shape[0] == 1: # a 2D case
+    #    propagated_wavefield = propagated_wavefield[0]
         
     propagated_wavefield_object = wavefield_object()
     propagated_wavefield_object.data                   = propagated_wavefield
@@ -192,6 +195,43 @@ def wavefield_propagating(origin_wavefield_object = None, z = None, window = Non
     propagated_wavefield_object.energy                 = energy
     
     return propagated_wavefield_object
+    
+    
+def wavefield_matching(reference_wavfield_object = None, target_wavefield_object = None):
+    # modified the target_wavefield_object to match the configuration of the reference_wavfield_object
+    # including size, resolution, etc.
+    resampling_factor = 1/(reference_wavfield_object.pixel_res/target_wavefield_object.pixel_res)
+    
+    # rough cut the FOV similar to the reference
+    window = (np.max(reference_wavfield_object.x_axis) -  np.min(reference_wavfield_object.x_axis))*1.2
+    extend_range = window/2
+    extend_pixel = np.int32(extend_range/target_wavefield_object.pixel_res)
+    
+    target_frame_num, target_frame_row_size, target_frame_col_size = target_wavefield_object.data.shape
+    target_frame_row_cen = np.int32((target_frame_row_size-1)/2)
+    target_frame_col_cen = np.int32((target_frame_col_size-1)/2)
+    reduced_target_frame = target_wavefield_object.data[:,target_frame_row_cen-extend_pixel:target_frame_row_cen+extend_pixel+1,target_frame_col_cen-extend_pixel:target_frame_col_cen+extend_pixel+1]
+    
+    resampling_frame = np.empty((target_frame_num,), dtype=object) # create a new array contains target_frame_num frames
+    for frame_sn in range(target_frame_num):
+        resampling_frame[frame_sn] = tools.frame_resampling(ori_frame=reduced_target_frame[frame_sn],resampling_factor=resampling_factor)
+    resampling_frame = np.stack(resampling_frame, axis=0) # reshape the array
+    
+    # cut interesting part    
+    reference_frame_num, reference_frame_row_size, reference_frame_col_size = reference_wavfield_object.data.shape
+    
+    output_frame = tools.frame_central_clip(ori_frame = resampling_frame, clip_row_size = reference_frame_row_size, clip_col_size = reference_frame_col_size)
+    
+    output_wavefield_object = wavefield_object()
+    output_wavefield_object.data                     = output_frame
+    output_wavefield_object.x_axis                   = reference_wavfield_object.x_axis
+    output_wavefield_object.z_axis                   = reference_wavfield_object.z_axis
+    output_wavefield_object.pixel_res                = reference_wavfield_object.pixel_res
+    output_wavefield_object.wavelength               = reference_wavfield_object.wavelength
+    output_wavefield_object.energy                   = reference_wavfield_object.energy
+    
+    return output_wavefield_object
+    
     
     
     
