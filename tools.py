@@ -169,25 +169,36 @@ def frame_resampling(ori_frame=None,resampling_factor=None):
     
     return resize_frame
 
+def frame_clip(ori_frame = None, clip_row_cen = None, clip_col_cen = None ,clip_row_size = None, clip_col_size = None):
+    # clip a area with row_size and col_size from the center of clip_row_idx and clip_col_idx
+    if iseven(clip_row_size) or iseven(clip_col_size):
+        print('Error: Clip size must be in odd.')
+    
+    ori_frame_num, ori_frame_row_size, ori_frame_col_size = ori_frame.shape
+    extend_row_pixel = np.int32((clip_row_size-1)/2)
+    extend_col_pixel = np.int32((clip_col_size-1)/2)
+    clip_frame_row_start = clip_row_cen - extend_row_pixel
+    clip_frame_row_end = clip_row_cen + extend_row_pixel
+    clip_frame_col_start = clip_col_cen - extend_col_pixel
+    clip_frame_col_end = clip_col_cen + extend_col_pixel
+    
+    output_frame = ori_frame[:,clip_frame_row_start:clip_frame_row_end+1,clip_frame_col_start:clip_frame_col_end+1]
+    
+    return output_frame
+
 def frame_central_clip(ori_frame = None, clip_row_size = None, clip_col_size = None):
+    # clip a square area with clip_size from the center of the frame
     ori_frame_num, ori_frame_row_size, ori_frame_col_size = ori_frame.shape
     if iseven(ori_frame_row_size)  or iseven(ori_frame_row_size):
-        print('Error: Input frames for clipping must be odds in row and col.')
+        print('Error: Input frames for frame_central_clip must be odds in row and col.')
         return
     if iseven(clip_row_size) or iseven(clip_col_size):
         print('Error: Clip size must be in odd.')
+        return
         
     ori_frame_row_cen = np.int32((ori_frame_row_size-1)/2)
     ori_frame_col_cen = np.int32((ori_frame_col_size-1)/2)
     
-    extend_row_pixel = np.int32((clip_row_size-1)/2)
-    extend_col_pixel = np.int32((clip_col_size-1)/2)
-    
-    clip_frame_row_start = ori_frame_row_cen - extend_row_pixel
-    clip_frame_row_end = ori_frame_row_cen + extend_row_pixel
-    clip_frame_col_start = ori_frame_col_cen - extend_col_pixel
-    clip_frame_col_end = ori_frame_col_cen + extend_col_pixel
-    
-    output_frame = ori_frame[:,clip_frame_row_start:clip_frame_row_end+1,clip_frame_col_start:clip_frame_col_end+1]
+    output_frame = frame_clip(ori_frame = ori_frame, clip_row_cen = ori_frame_row_cen, clip_col_cen = ori_frame_col_cen ,clip_row_size = clip_row_size, clip_col_size = clip_col_size )
     
     return output_frame
