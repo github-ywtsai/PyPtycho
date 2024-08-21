@@ -203,15 +203,15 @@ def wavefield_matching(reference_wavfield_object = None, target_wavefield_object
     resampling_factor = 1/(reference_wavfield_object.pixel_res/target_wavefield_object.pixel_res)
     
     # rough cut the FOV similar to the reference
-    window = (np.max(reference_wavfield_object.x_axis) -  np.min(reference_wavfield_object.x_axis))*1.2
-    extend_range = window/2
-    extend_pixel = np.int32(extend_range/target_wavefield_object.pixel_res)
+    window = (np.max(reference_wavfield_object.x_axis) -  np.min(reference_wavfield_object.x_axis))*1.1
+    clip_size = np.int32(window/reference_wavfield_object.pixel_res)
+    if tools.iseven(clip_size):
+        clip_size += 1
+        
     
-    target_frame_num, target_frame_row_size, target_frame_col_size = target_wavefield_object.data.shape
-    target_frame_row_cen = np.int32((target_frame_row_size-1)/2)
-    target_frame_col_cen = np.int32((target_frame_col_size-1)/2)
-    reduced_target_frame = target_wavefield_object.data[:,target_frame_row_cen-extend_pixel:target_frame_row_cen+extend_pixel+1,target_frame_col_cen-extend_pixel:target_frame_col_cen+extend_pixel+1]
+    reduced_target_frame = tools.frame_central_clip(ori_frame = target_wavefield_object.data, clip_row_size = clip_size, clip_col_size = clip_size)
     
+    target_frame_num, __, __ = target_wavefield_object.data.shape
     resampling_frame = np.empty((target_frame_num,), dtype=object) # create a new array contains target_frame_num frames
     for frame_sn in range(target_frame_num):
         resampling_frame[frame_sn] = tools.frame_resampling(ori_frame=reduced_target_frame[frame_sn],resampling_factor=resampling_factor)
