@@ -1,5 +1,6 @@
 import numpy as np
 import tools
+import probetools
 
 # for diffraction pattern
 class data_pretreatment_config:
@@ -21,18 +22,29 @@ class pretreated_data_object:
         self.pixel_size             = None
         self.wavelength             = None
         self.detector_distance      = None
+        self.energy                 = None
 
 # for probe
 class probe_gen_config:
     def __init__(self):
         self.mixture_state          = None # number of probe
+        self.gen_method             = None # zoneplate, adapt else.
 
-class probe_object:
+        self.zoneplate_config = zoneplate_config()
+        
+class zoneplate_config:
     def __init__(self):
-        self.data                   = None
-        self.x_axis                 = None
-        self.z_axis                 = None
-        self.pixel_res              = None
+        self.dr                     = None
+        self.N                      = None
+        self.energy                 = None
+        self.material               = None
+        self.thickness              = None
+        self.defocal                = None
+
+class probe_object(probetools.wavefield_object):
+    def __init__(self):
+        super().__init__()
+        self.attribute              = 'probe'
         self.cdi_window             = None
 
 # for object     
@@ -41,12 +53,10 @@ class obj_gen_config:
         self.extend_ratio           = 0.1 # area extend, default 10% 
         self.transmission_range     = [0.95, 1] # random range of the transmission
 
-class obj_object:
+class obj_object(probetools.wavefield_object):
     def __init__(self):
-        self.data                   = None
-        self.x_axis                 = None
-        self.z_axis                 = None
-        self.pixel_res              = None
+        super().__init__()
+        self.attribute = 'object'
         
 def gen_probe(pretreated_data_object,probe_gen_config):
     probe = probe_object()
@@ -63,10 +73,27 @@ def gen_probe(pretreated_data_object,probe_gen_config):
     probe.x_axis = x_axis
     probe.z_axis = z_axis
     probe.cdi_window = cdi_window
-    
+    probe.energy = pretreated_data_object.energy
+    probe.wavelength = pretreated_data_object.wavelength
+
     print('Probe shape: {}'.format(probe.data.shape))
     print('CDI window: {}'.format(tools.show_length_with_unit(cdi_window)))
     print('Probe pixel resolution: {}'.format(tools.show_length_with_unit(pixel_res)))
+    
+    ## start adapt wavefield
+    if probe_gen_config.gen_method == 'zoneplate':
+        dr          = probe_gen_config.zoneplate_config.dr
+        N           = probe_gen_config.zoneplate_config.N
+        energy      = probe_gen_config.zoneplate_config.energy
+        material    = probe_gen_config.zoneplate_config.material
+        thickness   = probe_gen_config.zoneplate_config.thickness
+        defocal     = probe_gen_config.zoneplate_config.defocal
+        zp = probetools.gen_zoneplate(dr=dr,N=N,energy=energy,material=material,thickness=thickness)
+        zpp = probetools.wavefield_propagating(origin_wavefield_object = zp, z = zp.focal_length+defocal,window = None)
+        
+        matched_zpp = probetools.wavefield_matching(reference_wavfield_object = probe, target_wavefield_object = zpp)       
+        probe.data[0] = matched_zpp.data[0]
+    
     return probe
     
 def gen_obj(pretreated_data_object,obj_gen_config):
@@ -98,6 +125,8 @@ def gen_obj(pretreated_data_object,obj_gen_config):
     obj.x_axis = x_axis
     obj.z_axis = z_axis
     obj.pixel_res = pixel_res
+    obj.energy = pretreated_data_object.energy
+    obj.wavelength = pretreated_data_object.wavelength
     
     print('Object shape: {}'.format(obj.data.shape))
     print('Object FOV: {}'.format(tools.show_length_with_unit(obj_col_size*pixel_res)),'X {}'.format(tools.show_length_with_unit(obj_row_size*pixel_res)))
@@ -141,6 +170,7 @@ def pretreat_data(raw_data_object,data_pretreatment_config):
     
     
     wavelength = raw_data_object.header.Wavelength
+    energy = raw_data_object.header.Energy
     pixel_size = raw_data_object.header.XPixelSize
     detector_distance = raw_data_object.header.DetectorDistance
     clip_size = data_pretreatment_config.clip_size
@@ -186,6 +216,7 @@ def pretreat_data(raw_data_object,data_pretreatment_config):
 
     pretreated_data.pixel_size              = pixel_size
     pretreated_data.wavelength              = wavelength
+    pretreated_data.energy                  = energy
     pretreated_data.detector_distance       = detector_distance
     pretreated_data.clip_size               = clip_size
     
