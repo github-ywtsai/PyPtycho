@@ -93,6 +93,19 @@ def gen_probe(pretreated_data_object,probe_gen_config):
         
         matched_zpp = probetools.wavefield_matching(reference_wavfield_object = probe, target_wavefield_object = zpp)       
         probe.data[0] = matched_zpp.data[0]
+        
+        # arrange 2nd, 3rd,...etc probes
+        if probe_gen_config.mixture_state > 1:
+            main_probe_amp = np.abs(probe.data[0])
+            main_probe_phase = np.angle(probe.data[0])
+            main_probe_intensity = np.power(main_probe_amp,2)
+            main_intensity_sum = np.sum(main_probe_intensity)
+            random_intensity = np.random.rand(probe_gen_config.mixture_state-1,pretreated_data_object.clip_size,pretreated_data_object.clip_size)
+            random_intensity_sum = 0.5 * pretreated_data_object.clip_size * pretreated_data_object.clip_size # the mean of a random matrix is approximate to 0.5
+            rand_probe_intensity = (random_intensity*main_intensity_sum/random_intensity_sum + main_probe_intensity)/2 *0.01 # generate a 1% probe (intensity)
+            rand_probe_amp = np.sqrt(rand_probe_intensity)
+            rand_probe = rand_probe_amp * np.exp(1j*main_probe_phase)
+            probe.data[1:] = rand_probe
     
     return probe
     
