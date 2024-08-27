@@ -30,9 +30,9 @@ class probe_gen_config:
         self.mixture_state          = None # number of probe
         self.gen_method             = None # zoneplate, adapt else.
 
-        self.zoneplate_config = zoneplate_config()
+        self.zoneplate_config = probe_gen_zoneplate_config()
         
-class zoneplate_config:
+class probe_gen_zoneplate_config:
     def __init__(self):
         self.dr                     = None
         self.N                      = None
