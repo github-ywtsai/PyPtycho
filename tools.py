@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+from matplotlib import pyplot as plt
 
 def array_fft(array_in):
     array_out = np.fft.fftshift(np.fft.fft2(np.fft.ifftshift(array_in)))
@@ -202,3 +203,13 @@ def frame_central_clip(ori_frame = None, clip_row_size = None, clip_col_size = N
     output_frame = frame_clip(ori_frame = ori_frame, clip_row_cen = ori_frame_row_cen, clip_col_cen = ori_frame_col_cen ,clip_row_size = clip_row_size, clip_col_size = clip_col_size )
     
     return output_frame
+
+def plot_wavefield(wavefield_object = None,frame = None):
+    data = wavefield_object.data[frame]
+    extent=[wavefield_object.x_axis[0],wavefield_object.x_axis[-1],wavefield_object.z_axis[0],wavefield_object.z_axis[-1]] 
+    plt.figure(1)
+    plt.imshow(np.abs(data),extent=extent)
+    plt.figure(2)
+    plt.imshow(np.angle(data),extent=extent)
+    plt.show()
+    
