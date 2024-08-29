@@ -35,12 +35,20 @@ class probe_gen_config:
         
 class probe_gen_zoneplate_config:
     def __init__(self):
+        # zoneplate
         self.dr                     = None
         self.N                      = None
         self.energy                 = None
         self.material               = None
         self.thickness              = None
         self.defocal                = None
+        # osa
+        self.osa_diameter           = None
+        self.osa_position           = None
+        # cs
+        self.cs_diameter            = None
+        self.cs_material            = None
+        self.cs_thickness           = None
 
 class probe_object(probetools.wavefield_object):
     def __init__(self):
@@ -81,17 +89,21 @@ def gen_probe(pretreated_data_object,probe_gen_config):
     print('CDI window: {}'.format(tools.show_length_with_unit(cdi_window)))
     print('Probe pixel resolution: {}'.format(tools.show_length_with_unit(pixel_res)))
     
-    ## start adapt wavefield
+    ## zoneplate case
     if probe_gen_config.gen_method == 'zoneplate':
-        dr          = probe_gen_config.zoneplate_config.dr
-        N           = probe_gen_config.zoneplate_config.N
-        energy      = probe_gen_config.zoneplate_config.energy
-        material    = probe_gen_config.zoneplate_config.material
-        thickness   = probe_gen_config.zoneplate_config.thickness
-        defocal     = probe_gen_config.zoneplate_config.defocal
-        zp = probetools.gen_zoneplate(dr=dr,N=N,energy=energy,material=material,thickness=thickness)
-        zpp = probetools.wavefield_propagating(origin_wavefield_object = zp, z = zp.focal_length+defocal,window = None)
+        zp = probetools.gen_zoneplate(probe_gen_config.zoneplate_config)
         
+        # consider osa
+        if (probe_gen_config.zoneplate_config.osa_diameter == None) or (probe_gen_config.zoneplate_config.osa_position == None):
+            zpp = probetools.wavefield_propagating(origin_wavefield_object = zp, z = zp.focal_length+probe_gen_config.zoneplate_config.defocal,window = None)
+        else:
+            zp_at_osa = probetools.wavefield_propagating(origin_wavefield_object = zp, z = probe_gen_config.zoneplate_config.osa_position,window = None)
+            zp_at_osa_X, zp_at_osa_Z = np.meshgrid(zp_at_osa.x_axis,zp_at_osa.z_axis)
+            distance = np.sqrt(np.power(zp_at_osa_X,2) + np.power(zp_at_osa_Z,2))
+            zp_at_osa.data[0,distance>probe_gen_config.zoneplate_config.osa_diameter/2] = 0
+            zpp = probetools.wavefield_propagating(origin_wavefield_object = zp_at_osa, z = zp.focal_length+probe_gen_config.zoneplate_config.defocal-probe_gen_config.zoneplate_config.osa_position,window = None)
+        
+        # match probe size
         matched_zpp = probetools.wavefield_matching(reference_wavfield_object = probe, target_wavefield_object = zpp)       
         probe.data[0] = matched_zpp.data[0]
         

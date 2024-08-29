@@ -18,7 +18,7 @@ pretreated_data = pp.pretreat_data(raw_data,data_pretreatment_config)
 
 ## create probe
 probe_gen_config = pp.probe_gen_config()
-probe_gen_config.normalization                  = True
+probe_gen_config.normalization                  = False
 probe_gen_config.mixture_state                  = 3
 probe_gen_config.gen_method                     = 'zoneplate' #'zoneplate'
 
@@ -26,9 +26,14 @@ probe_gen_config.gen_method                     = 'zoneplate' #'zoneplate'
 probe_gen_config.zoneplate_config.dr            = 70e-9 # in meter
 probe_gen_config.zoneplate_config.N             = 286
 probe_gen_config.zoneplate_config.energy        = pretreated_data.energy
-probe_gen_config.zoneplate_config.thickness     = 1500e-6 # in meter
+probe_gen_config.zoneplate_config.thickness     = 1500e-9 # in meter
 probe_gen_config.zoneplate_config.material      = 'Au'
 probe_gen_config.zoneplate_config.defocal       = 200e-6 # in meter
+probe_gen_config.zoneplate_config.osa_diameter  = 30e-6 # in  meter
+probe_gen_config.zoneplate_config.osa_position  = 30e-3 # in  meter
+probe_gen_config.zoneplate_config.cs_diameter   = 40e-6 # in meter
+probe_gen_config.zoneplate_config.cs_material   = 'Au'
+probe_gen_config.zoneplate_config.cs_thickness  = 30e-6 # in meter
 
 probe = pp.gen_probe(pretreated_data,probe_gen_config)
 

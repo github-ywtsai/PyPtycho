@@ -22,7 +22,7 @@ class zoneplate_object(wavefield_object):
         self.focal_length           = None
         
 
-def gen_zoneplate(dr=None,N=None,energy=None,material=None,thickness=None):
+def gen_zoneplate(zoneplate_config):
     # energy in eV
     # dr: the min. pitch
     # N: the period for the zone plate design
@@ -52,10 +52,15 @@ def gen_zoneplate(dr=None,N=None,energy=None,material=None,thickness=None):
     # dr = 70e-9
     # N = 429
     # thickness = 1500E-9
+    dr          = zoneplate_config.dr
+    N           = zoneplate_config.N
+    energy      = zoneplate_config.energy
+    material    = zoneplate_config.material
+    thickness   = zoneplate_config.thickness
     
     print('Generating wavefield of the zone plate.')
     wavelength = tools.energy_eV_to_wavelength_m(energy)
-    property = material_property.atomic_database('Au')
+    property = material_property.atomic_database(material)
     n_refractivity = property.calculate_refractive_index(energy = energy,theta = 0)
     
     # diameter and focal length of the zone plate
@@ -66,7 +71,6 @@ def gen_zoneplate(dr=None,N=None,energy=None,material=None,thickness=None):
     # E(z) = E0 * exp(i * n k z)
     # modulator = E(z)/E0 = exp(i * n k z)
     zp_modulation_factor = np.exp(1j * n_refractivity * 2*pi/wavelength * thickness)/np.exp(1j * 1 * 2*pi/wavelength * thickness)
-    
 
     # create zp
     
@@ -91,13 +95,23 @@ def gen_zoneplate(dr=None,N=None,energy=None,material=None,thickness=None):
             mask = (distance_map <= rn[n_sn]) & (distance_map > rn[n_sn-1])
             zp[mask] = zp_modulation_factor
 
-        
     
-    # for n_sn in np.flip(np.arange(0,N+1)):
-    #     if np.mod(n_sn,2) == 0:
-    #         zp[distance_map<rn[n_sn]] = zp_modulation_factor
-    #     else:
-    #         zp[distance_map<rn[n_sn]] = 1
+    # cs part
+    cs_diameter     = zoneplate_config.cs_diameter
+    cs_material     = zoneplate_config.cs_material
+    cs_thickness    = zoneplate_config.cs_thickness
+    if cs_diameter == None or cs_material == None or cs_thickness == None:
+        print('Central stop disable.')
+    else:
+        wavelength = tools.energy_eV_to_wavelength_m(energy)
+        property = material_property.atomic_database(cs_material)
+        n_refractivity = property.calculate_refractive_index(energy = energy,theta = 0)
+        cs_modulation_factor = np.exp(1j * n_refractivity * 2*pi/wavelength * cs_thickness)/np.exp(1j * 1 * 2*pi/wavelength * cs_thickness)
+        cs = np.ones([pix_num,pix_num],dtype = np.complex128)
+        matrix_x, matrix_y = np.meshgrid(x_axis,y_axis)
+        distance_map = np.sqrt(matrix_x**2+matrix_y**2)
+        cs[distance_map<cs_diameter/2] = cs_modulation_factor
+        zp = zp*cs
             
     zp_object = zoneplate_object()
     zp_object.data = zp.reshape(1,zp.shape[0],zp.shape[1])
