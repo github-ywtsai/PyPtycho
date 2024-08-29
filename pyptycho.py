@@ -29,6 +29,7 @@ class probe_gen_config:
     def __init__(self):
         self.mixture_state          = None # number of probe
         self.gen_method             = None # zoneplate, adapt else.
+        self.normalization          = None # normalize the amplitude of generated probe with the data
 
         self.zoneplate_config = probe_gen_zoneplate_config()
         
@@ -106,6 +107,14 @@ def gen_probe(pretreated_data_object,probe_gen_config):
             rand_probe_amp = np.sqrt(rand_probe_intensity)
             rand_probe = rand_probe_amp * np.exp(1j*main_probe_phase)
             probe.data[1:] = rand_probe
+            
+    
+    if probe_gen_config.normalization: # normalize the amplitude of the probe with the data
+        pretreated_data_amp_average = np.mean(pretreated_data_object.data)
+        probe_fft = tools.array_fft(probe.data)
+        probe_fft_amp_average = np.mean(np.abs(probe_fft))
+        probe.data = probe.data * pretreated_data_amp_average / probe_fft_amp_average
+    
     
     return probe
     
