@@ -3,6 +3,7 @@ import hdf5plugin
 import os
 import numpy as np
 import pandas as pd
+import re
 
 class __eiger_header_object:
         def __init__(self):
@@ -80,12 +81,16 @@ def read_bluesky_data(bluesky_data_fp,beamline = 'TPS 25A'):
     table_buffer = pd.read_csv(bluesky_data_fp,engine='python',sep=',| ')
 
     ## check eiger type
-    if len([col for col in table_buffer.columns if 'eig1m' in col]) != 0: # Eiger 1M case
-        file_name_pattern = table_buffer['eig1m_file_file_write_name_pattern'][0]
-    elif len([col for col in table_buffer.columns if 'eig16m' in col]) != 0: # Eiger 16M case
-        file_name_pattern = table_buffer['eig16m_file_file_write_name_pattern'][0]
-    else:
-        print('No Eiger data found.')
+    search_pattern = r'eig\d+m_file_file_write_name_pattern'
+    match_result = None
+    match_column = None
+    
+    for col in table_buffer.columns:
+        match_result = re.search(search_pattern, col)
+        if match_result:
+            eig_file_file_write_name_pattern = match_result.group()
+            file_name_pattern = table_buffer[eig_file_file_write_name_pattern][0]
+            break
 
     master_fn = file_name_pattern + '_master.h5'
     scanfile_fp = bluesky_data_fp
