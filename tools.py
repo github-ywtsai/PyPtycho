@@ -1,5 +1,4 @@
 import numpy as np
-import cv2
 from matplotlib import pyplot as plt
 
 def array_fft(array_in):
@@ -141,34 +140,6 @@ def wavelength_m_to_energy_eV(wavelength = None):
     
     return energy
 
-def frame_resampling(ori_frame=None,resampling_factor=None):
-    # cv2.resize(ori_frame,(new_col_size,new_row_size),interpolation=cv2.INTER_LINEAR)
-    if ori_frame.ndim == 2:
-        ori_row_size,ori_col_size = ori_frame.shape
-    elif ori_frame.ndim == 3:
-        print('img_resize only can apply on a 2D image.')
-        return
-    
-    resize_row_size = np.int32(np.round(ori_row_size*resampling_factor))
-    resize_col_size = np.int32(np.round(ori_col_size*resampling_factor))
-    
-    if np.mod(resize_row_size,2) == 0:
-        resize_row_size = resize_row_size-1
-    if np.mod(resize_col_size,2) == 0:
-        resize_col_size = resize_col_size-1    
-        
-    if ori_frame.dtype == 'bool': # for roi
-        mask = (~ori_frame).astype(float)
-        mask = cv2.resize(mask,(resize_col_size,resize_row_size),interpolation=cv2.INTER_LINEAR)
-        resize_frame = ~(mask>0)
-    elif ori_frame.dtype == 'complex128':  # for complex image
-        amp   = cv2.resize(np.abs(ori_frame)  ,(resize_col_size,resize_row_size),interpolation=cv2.INTER_LINEAR)
-        phase = cv2.resize(np.angle(ori_frame),(resize_col_size,resize_row_size),interpolation=cv2.INTER_LINEAR)
-        resize_frame = amp*np.exp(1j*phase)
-    else:
-        resize_frame = cv2.resize(ori_img,(resize_col_size,resize_row_size),interpolation=cv2.INTER_LINEAR)        
-    
-    return resize_frame
 
 def frame_clip(ori_frame = None, clip_row_cen = None, clip_col_cen = None ,clip_row_size = None, clip_col_size = None):
     # clip a area with row_size and col_size from the center of clip_row_idx and clip_col_idx
@@ -212,4 +183,7 @@ def plot_wavefield(wavefield_object = None,frame = None):
     plt.figure(2)
     plt.imshow(np.angle(data),extent=extent)
     plt.show()
+    
+def binning():
+    
     
