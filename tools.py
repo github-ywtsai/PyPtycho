@@ -184,6 +184,27 @@ def plot_wavefield(wavefield_object = None,frame = None):
     plt.imshow(np.angle(data),extent=extent)
     plt.show()
     
-def binning():
+def binning(data = None,binning_factor = None):
+    if data.ndim == 2:
+        [row_size,col_size] = data.shape
+        row_range = (row_size//binning_factor)*binning_factor
+        col_rnage = (col_size//binning_factor)*binning_factor
+        binning_data = np.copy(data[0:row_range,0:col_rnage]) # clip data to fit the binning factor
+        
+        binning_data = binning_data.reshape(row_size // binning_factor, binning_factor, col_size // binning_factor, binning_factor).sum(axis=(1, 3))
+        
+    elif data.ndim == 3:
+        [frame_num,row_size,col_size] = data.shape
+        row_range = (row_size//binning_factor)*binning_factor
+        col_rnage = (col_size//binning_factor)*binning_factor
+        binning_data = np.copy(data[:,0:row_range,0:col_rnage]) # clip data to fit the binning factor
+        
+        binning_data = binning_data.reshape(frame_num,row_size // binning_factor, binning_factor, col_size // binning_factor, binning_factor).sum(axis=(2, 4))
+        
+    if data.dtype == 'bool':
+        binning_data = binning_data != 0
+        
+    return binning_data
+
     
     
