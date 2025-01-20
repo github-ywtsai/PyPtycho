@@ -213,8 +213,6 @@ def pretreat_data(raw_data_object,data_pretreatment_config):
     raw_data = np.copy(raw_data_object.data)
     raw_pixel_mask = np.copy(raw_data_object.header.PixelMask)
     
-    print(raw_data.shape,raw_pixel_mask.shape,pixel_size,clip_size,clip_xcen,clip_ycen)
-    
     # binning data
     # This must be the end of the last of data_pretreatment
     if isinstance(data_pretreatment_config.binning, int):
@@ -228,8 +226,6 @@ def pretreat_data(raw_data_object,data_pretreatment_config):
             clip_ycen      = clip_ycen // binning_factor
             if ~np.mod(clip_size,2):
                 clip_size = clip_size + 1
-    
-    print(raw_data.shape,raw_pixel_mask.shape,pixel_size,clip_size,clip_xcen,clip_ycen)
         
     # tools.matrix_clip function will return a new matrix for the cliped matrix
     # pretreated_data = pretreated_data_object()
