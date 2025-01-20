@@ -185,7 +185,7 @@ def plot_wavefield(wavefield_object = None,frame = None):
     plt.imshow(np.angle(data),extent=extent)
     plt.show()
     
-def binning(data = None,binning_factor = None):
+def frame_binning(data = None,binning_factor = None):
     if data.ndim == 2:
         [row_size,col_size] = data.shape
         row_range = (row_size//binning_factor)*binning_factor
