@@ -201,7 +201,7 @@ def pretreat_data(raw_data_object,data_pretreatment_config):
     else:
         data_pretreatment_config.saturation_threshold = data_pretreatment_config.saturation_threshold
         print('saturation_threshold is set to %d manually.'%(data_pretreatment_config.saturation_threshold))
-    
+   
     
     wavelength = raw_data_object.header.Wavelength
     energy = raw_data_object.header.Energy
@@ -213,11 +213,23 @@ def pretreat_data(raw_data_object,data_pretreatment_config):
     raw_data = np.copy(raw_data_object.data)
     raw_pixel_mask = np.copy(raw_data_object.header.PixelMask)
     
-        ## binning section
-    if data_pretreatment_config.binning != 1:
-        # when benning on, change parameters here
-        print('Binning function is not ready yet.')
-        
+    print(raw_data.shape,raw_pixel_mask.shape,pixel_size,clip_size,clip_xcen,clip_ycen)
+    
+    # binning data
+    # This must be the end of the last of data_pretreatment
+    if isinstance(data_pretreatment_config.binning, int):
+        if data_pretreatment_config.binning > 1:
+            binning_factor = data_pretreatment_config.binning
+            raw_data       = tools.frame_binning(frame_data = raw_data,binning_factor = binning_factor)
+            raw_pixel_mask = tools.frame_binning(frame_data = raw_pixel_mask, binning_factor = binning_factor)
+            pixel_size     = pixel_size * binning_factor
+            clip_size      = round(clip_size /  binning_factor)
+            clip_xcen      = clip_xcen // binning_factor
+            clip_ycen      = clip_ycen // binning_factor
+            if ~np.mod(clip_size,2):
+                clip_size = clip_size + 1
+    
+    print(raw_data.shape,raw_pixel_mask.shape,pixel_size,clip_size,clip_xcen,clip_ycen)
         
     # tools.matrix_clip function will return a new matrix for the cliped matrix
     # pretreated_data = pretreated_data_object()
