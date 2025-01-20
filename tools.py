@@ -1,6 +1,6 @@
 import numpy as np
-import cv2
 from matplotlib import pyplot as plt
+from scipy.ndimage import zoom
 
 def array_fft(array_in):
     array_out = np.fft.fftshift(np.fft.fft2(np.fft.ifftshift(array_in)))
@@ -207,32 +207,53 @@ def frame_binning(data = None,binning_factor = None):
         
     return binning_data
 
-    -def frame_resampling(ori_frame=None,resampling_factor=None):
--    # cv2.resize(ori_frame,(new_col_size,new_row_size),interpolation=cv2.INTER_LINEAR)
--    if ori_frame.ndim == 2:
--        ori_row_size,ori_col_size = ori_frame.shape
--    elif ori_frame.ndim == 3:
--        print('img_resize only can apply on a 2D image.')
--        return
--    
--    resize_row_size = np.int32(np.round(ori_row_size*resampling_factor))
--    resize_col_size = np.int32(np.round(ori_col_size*resampling_factor))
--    
--    if np.mod(resize_row_size,2) == 0:
--        resize_row_size = resize_row_size-1
--    if np.mod(resize_col_size,2) == 0:
--        resize_col_size = resize_col_size-1    
--        
--    if ori_frame.dtype == 'bool': # for roi
--        mask = (~ori_frame).astype(float)
--        mask = cv2.resize(mask,(resize_col_size,resize_row_size),interpolation=cv2.INTER_LINEAR)
--        resize_frame = ~(mask>0)
--    elif ori_frame.dtype == 'complex128':  # for complex image
--        amp   = cv2.resize(np.abs(ori_frame)  ,(resize_col_size,resize_row_size),interpolation=cv2.INTER_LINEAR)
--        phase = cv2.resize(np.angle(ori_frame),(resize_col_size,resize_row_size),interpolation=cv2.INTER_LINEAR)
--        resize_frame = amp*np.exp(1j*phase)
--    else:
--        resize_frame = cv2.resize(ori_img,(resize_col_size,resize_row_size),interpolation=cv2.INTER_LINEAR)        
--    
--    return resize_frame
+def frame_resampling(ori_frame=None, resampling_factor=None, interpolation="linear"):
+    """
+    Resample a 3D image, only resizing the height and width (not depth).
+
+    Parameters:
+    ori_frame (numpy.ndarray): Input 3D image (shape: [depth, height, width]).
+    resampling_factor (float or tuple): Scaling factor for height & width.
+    interpolation (str): Interpolation method, can be "linear", "nearest", or "cubic".
+
+    Returns:
+    numpy.ndarray: Resampled 3D image.
+    """
+    if ori_frame is None or resampling_factor is None:
+        raise ValueError("Both 'ori_frame' and 'resampling_factor' must be provided.")
+
+    if ori_frame.ndim != 3:
+        raise ValueError("Input must be a 3D image with shape (depth, height, width).")
+
+    # 解析 resampling_factor
+    if isinstance(resampling_factor, (int, float)):
+        resampling_factor = (resampling_factor, resampling_factor)  # 统一缩放 height & width
+    elif isinstance(resampling_factor, (list, tuple)) and len(resampling_factor) == 2:
+        resampling_factor = tuple(resampling_factor)
+    else:
+        raise ValueError("resampling_factor must be a float or a tuple (height_factor, width_factor).")
+
+    # 选择插值方法
+    interp_order = {"nearest": 0, "linear": 1, "cubic": 3}
+    if interpolation not in interp_order:
+        raise ValueError("Interpolation must be 'nearest', 'linear', or 'cubic'.")
+
+    # 计算缩放比例 (depth 维度保持不变)
+    resize_factors = (1,) + resampling_factor  # (depth_scale=1, height_scale, width_scale)
+
+    # 处理不同数据类型
+    if ori_frame.dtype == np.bool_:  # 处理布尔类型
+        mask = (~ori_frame).astype(np.float32)
+        mask = zoom(mask, resize_factors, order=interp_order[interpolation])
+        resize_frame = ~(mask > 0)
+
+    elif np.iscomplexobj(ori_frame):  # 处理复数类型
+        amp = zoom(np.abs(ori_frame), resize_factors, order=interp_order[interpolation])
+        phase = zoom(np.angle(ori_frame), resize_factors, order=interp_order[interpolation])
+        resize_frame = amp * np.exp(1j * phase)
+
+    else:  # 处理普通数值类型
+        resize_frame = zoom(ori_frame, resize_factors, order=interp_order[interpolation])
+
+    return resize_frame
     
