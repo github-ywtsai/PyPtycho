@@ -3,15 +3,14 @@ import pandas as pd
 import os
 
 ## These functions are created by 李柏緯
-
-def energy_eV_to_wavelength_m(energy = None):
-    h=6.62607015*10**-34
-    e=1.60217651019*10**-19
-    c=299792458.0
-    wavelength=(h*c)/(energy*e)
-    
-    return wavelength
-
+## Usage:
+## 0. import function
+## ex: import material_property as mp
+## 1. Load database for Au
+## ex: Au_database = mp.atomic_database('Au')
+## 2. calculate of f0/f1/f2/refractive_index for Au
+## ex: refractive_index = Au_database.calculate_refractive_index(energy = 9600, theta = 0)
+## where energy is photon energy in eV and the theta is the scattering angle in degree.
 
 class atomic_database:
     def __init__(self,arg_atomic_name):
@@ -71,6 +70,14 @@ class atomic_database:
         self.f2_table.energy = f1f2_table_df.iloc[:,self.atomic_number*3-3].values*1E3 # convert keV to eV
         self.f2_table.value  = f1f2_table_df.iloc[:,self.atomic_number*3-3+2].values
     
+    def energy_eV_to_wavelength_m(self,energy = None):
+        h=6.62607015*10**-34
+        e=1.60217651019*10**-19
+        c=299792458.0
+        wavelength=(h*c)/(energy*e)
+    
+        return wavelength
+    
     def calculate_f0(self, energy=None, theta=None):
         # energy: the photon energy of X-ray in eV
         # theta: the incident angle (in degree when input and rad in code)
@@ -84,7 +91,7 @@ class atomic_database:
             
         theta = np.deg2rad(theta)
        
-        wavelength= energy_eV_to_wavelength_m(energy) * 1E10 ### 1E3: keV to eV, 1E10: m to angstrom
+        wavelength= self.energy_eV_to_wavelength_m(energy) * 1E10 ### 1E3: keV to eV, 1E10: m to angstrom
         sin_th_over_lambda=np.sin(theta)/wavelength
         f0_interp = np.interp(sin_th_over_lambda,self.f0_table.sin_th_over_lambda,self.f0_table.value)
         
@@ -143,7 +150,7 @@ class atomic_database:
         rho = rho / (1e-2)**3 # convert unit from [g cm-3] to [g m-3]
         na = rho*Na/Ma # number density
     
-        wavelength= energy_eV_to_wavelength_m(energy)
+        wavelength= self.energy_eV_to_wavelength_m(energy)
         f0 = self.calculate_f0(energy = energy, theta = theta)
         f1 = self.calculate_f1(energy=energy)
         f2 = self.calculate_f2(energy=energy)
