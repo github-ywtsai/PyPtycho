@@ -259,3 +259,14 @@ def frame_resampling(ori_frame, resampling_factor, interpolation="linear"):
         resize_frame = zoom(ori_frame, resize_factors, order=interp_order[interpolation])
 
     return resize_frame
+
+def if_even_to_odd(input,method = 1):
+    if iseven(input):
+        if method > 0:
+            output = input + 1
+        elif method < 0:
+            output = input -1
+    elif isodd(input):
+        output = input
+        
+    return output  

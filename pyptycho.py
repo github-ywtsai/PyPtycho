@@ -68,6 +68,9 @@ class obj_object(probetools.wavefield_object):
         self.attribute = 'object'
         
 def gen_probe(pretreated_data_object,probe_gen_config):
+    ## create a zeros probe
+    ## the shape of the probe is [number of probe mode, clip size, clip size]
+    ## the clip size is always a odd number
     probe = probe_object()
     data = np.zeros([probe_gen_config.mixture_state,pretreated_data_object.clip_size,pretreated_data_object.clip_size]) *  0j
     pixel_res = tools.cal_real_space_pixel_res(wavelength = pretreated_data_object.wavelength , detector_distance = pretreated_data_object.detector_distance , clip_size = pretreated_data_object.clip_size , pixel_size = pretreated_data_object.pixel_size)
@@ -88,6 +91,8 @@ def gen_probe(pretreated_data_object,probe_gen_config):
     print('Probe shape: {}'.format(probe.data.shape))
     print('CDI window: {}'.format(tools.show_length_with_unit(cdi_window)))
     print('Probe pixel resolution: {}'.format(tools.show_length_with_unit(pixel_res)))
+    
+    
     
     ## zoneplate case
     if probe_gen_config.gen_method == 'zoneplate':

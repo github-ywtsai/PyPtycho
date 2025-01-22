@@ -60,8 +60,8 @@ def gen_zoneplate(zoneplate_config):
     
     print('Generating wavefield of the zone plate.')
     wavelength = tools.energy_eV_to_wavelength_m(energy)
-    property = material_property.atomic_database(material)
-    n_refractivity = property.calculate_refractive_index(energy = energy,theta = 0)
+    material_properties = material_property.atomic_database(material)
+    n_refractivity = material_properties.calculate_refractive_index(energy = energy,theta = 0)
     
     # diameter and focal length of the zone plate
     D = 4*N*dr
@@ -78,10 +78,9 @@ def gen_zoneplate(zoneplate_config):
     rn = np.sqrt(n*wavelength*f+(n*wavelength)**2/4)
     
     pix_res = dr/2
-    range = D*2
-    pix_num = np.int32(np.round(range/pix_res))
-    if np.mod(pix_num,2)==0:
-        pix_num = pix_num + 1
+    extend_range = D*2
+    pix_num = np.int32(np.round(extend_range/pix_res))
+    pix_num = tools.if_even_to_odd(pix_num, method = 1)
     cen_idx = (pix_num-1)/2
     zp = np.ones([pix_num,pix_num],dtype = np.complex128)
     
@@ -217,18 +216,23 @@ def wavefield_matching(reference_wavfield_object = None, target_wavefield_object
     resampling_factor = 1/(reference_wavfield_object.pixel_res/target_wavefield_object.pixel_res)
     
     # rough cut the FOV similar to the reference
-    window = (np.max(reference_wavfield_object.x_axis) -  np.min(reference_wavfield_object.x_axis))*1.1
-    clip_size = np.int32(window/reference_wavfield_object.pixel_res)
-    if tools.iseven(clip_size):
-        clip_size += 1
-        
+    rough_window = (np.max(reference_wavfield_object.x_axis) -  np.min(reference_wavfield_object.x_axis))*1.1
+    rough_clip_size = np.int32(rough_window/reference_wavfield_object.pixel_res)
+    rough_clip_size = tools.if_even_to_odd(rough_clip_size, method=1)
     
-    reduced_target_frame = tools.frame_central_clip(ori_frame = target_wavefield_object.data, clip_row_size = clip_size, clip_col_size = clip_size)
+    reduced_target_frame = tools.frame_central_clip(ori_frame = target_wavefield_object.data, clip_row_size = rough_clip_size, clip_col_size = rough_clip_size)
     
     target_frame_num, __, __ = target_wavefield_object.data.shape
     resampling_frame = np.empty((target_frame_num,), dtype=object) # create a new array contains target_frame_num frames
     for frame_sn in range(target_frame_num):
-        resampling_frame[frame_sn] = tools.frame_resampling(ori_frame=reduced_target_frame[frame_sn],resampling_factor=resampling_factor)
+        temp = tools.frame_resampling(ori_frame=reduced_target_frame[frame_sn],resampling_factor=resampling_factor)
+        row_size, col_size = temp.shape
+        if tools.iseven(row_size):
+            temp = temp[0:-1,:]
+        if tools.iseven(col_size):
+            temp = temp[:,0:-1]
+        resampling_frame[frame_sn] = temp
+    
     resampling_frame = np.stack(resampling_frame, axis=0) # reshape the array
     
     # cut interesting part    
@@ -245,8 +249,3 @@ def wavefield_matching(reference_wavfield_object = None, target_wavefield_object
     output_wavefield_object.energy                   = reference_wavfield_object.energy
     
     return output_wavefield_object
-    
-    
-    
-    
-        
