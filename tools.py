@@ -163,10 +163,10 @@ def frame_central_clip(ori_frame = None, clip_row_size = None, clip_col_size = N
     # clip a square area with clip_size from the center of the frame
     ori_frame_num, ori_frame_row_size, ori_frame_col_size = ori_frame.shape
     if iseven(ori_frame_row_size)  or iseven(ori_frame_row_size):
-        print('Error: Input frames for frame_central_clip must be odds in row and col.')
+        raise ValueError(f'For tools.frame_central_clip, the row and col sizes of the input frame must be in odd, but the shape of the input frame is {ori_frame.shape}.')
         return
     if iseven(clip_row_size) or iseven(clip_col_size):
-        print('Error: Clip size must be in odd.')
+        raise ValueError(f'For tools.frame_central_clip, the clip sizes for row and col must be in odd, but the input clip size fo row and col are {clip_row_size} and {clip_col_size}.')
         return
         
     ori_frame_row_cen = np.int32((ori_frame_row_size-1)/2)
@@ -207,27 +207,27 @@ def frame_binning(frame_data = None,binning_factor = None):
         
     return binning_data
 
-def frame_resampling(ori_frame=None, resampling_factor=None, interpolation="linear"):
+def frame_resampling(ori_frame, resampling_factor, interpolation="linear"):
     """
-    Resample a 3D image, only resizing the height and width (not depth).
-
+    Resample a 2D or 3D image, only resizing the height and width (not depth).
+    
     Parameters:
-    ori_frame (numpy.ndarray): Input 3D image (shape: [depth, height, width]).
+    ori_frame (numpy.ndarray): Input image (2D or 3D).
     resampling_factor (float or tuple): Scaling factor for height & width.
     interpolation (str): Interpolation method, can be "linear", "nearest", or "cubic".
 
     Returns:
-    numpy.ndarray: Resampled 3D image.
+    numpy.ndarray: Resampled image.
     """
     if ori_frame is None or resampling_factor is None:
         raise ValueError("Both 'ori_frame' and 'resampling_factor' must be provided.")
 
-    if ori_frame.ndim != 3:
-        raise ValueError("Input must be a 3D image with shape (depth, height, width).")
+    if ori_frame.ndim not in [2, 3]:
+        raise ValueError("Only 2D and 3D images are supported.")
 
     # 解析 resampling_factor
-    if isinstance(resampling_factor, (int, float)):
-        resampling_factor = (resampling_factor, resampling_factor)  # 统一缩放 height & width
+    if isinstance(resampling_factor, (int, float, np.integer, np.floating)):
+        resampling_factor = (resampling_factor, resampling_factor)  # (height_factor, width_factor)
     elif isinstance(resampling_factor, (list, tuple)) and len(resampling_factor) == 2:
         resampling_factor = tuple(resampling_factor)
     else:
@@ -238,15 +238,18 @@ def frame_resampling(ori_frame=None, resampling_factor=None, interpolation="line
     if interpolation not in interp_order:
         raise ValueError("Interpolation must be 'nearest', 'linear', or 'cubic'.")
 
-    # 计算缩放比例 (depth 维度保持不变)
-    resize_factors = (1,) + resampling_factor  # (depth_scale=1, height_scale, width_scale)
+    # 获取原始尺寸
+    if ori_frame.ndim == 2:  # 2D 图像
+        resize_factors = resampling_factor  # 直接缩放 (height, width)
+    else:  # 3D 图像 (depth, height, width)
+        resize_factors = (1,) + resampling_factor  # 深度保持不变，仅缩放 height 和 width
 
     # 处理不同数据类型
     if ori_frame.dtype == np.bool_:  # 处理布尔类型
         mask = (~ori_frame).astype(np.float32)
         mask = zoom(mask, resize_factors, order=interp_order[interpolation])
         resize_frame = ~(mask > 0)
-
+    
     elif np.iscomplexobj(ori_frame):  # 处理复数类型
         amp = zoom(np.abs(ori_frame), resize_factors, order=interp_order[interpolation])
         phase = zoom(np.angle(ori_frame), resize_factors, order=interp_order[interpolation])
@@ -256,4 +259,3 @@ def frame_resampling(ori_frame=None, resampling_factor=None, interpolation="line
         resize_frame = zoom(ori_frame, resize_factors, order=interp_order[interpolation])
 
     return resize_frame
-    
