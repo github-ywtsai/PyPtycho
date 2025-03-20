@@ -80,19 +80,9 @@ def read_bluesky_data(bluesky_data_fp,beamline = 'TPS 25A'):
     
     table_buffer = pd.read_csv(bluesky_data_fp,engine='python',sep=',| ')
 
-    ## check eiger type
-    search_pattern = r'eig\d+m_file_file_write_name_pattern'
-    match_result = None
-    match_column = None
-    
-    for col in table_buffer.columns:
-        match_result = re.search(search_pattern, col)
-        if match_result:
-            eig_file_file_write_name_pattern = match_result.group()
-            file_name_pattern = table_buffer[eig_file_file_write_name_pattern][0]
-            break
+    master_file_pattern = table_buffer.filter(regex = r'eig\d+m_file_file_write_name_pattern').iloc[0,0]
 
-    master_fn = file_name_pattern + '_master.h5'
+    master_fn = master_file_pattern + '_master.h5'
     scanfile_fp = bluesky_data_fp
     readback_x = table_buffer['_cisamf_x'].to_numpy() # in um
     readback_z = table_buffer['_cisamf_z'].to_numpy() # in um
